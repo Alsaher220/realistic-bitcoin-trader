@@ -1,135 +1,101 @@
-/**
- * Realistic Bitcoin Trader - Backend Server
- * -----------------------------------------
- * Features:
- *  - Serves frontend from /public
- *  - Provides API for live BTC price (via CoinGecko)
- *  - User management (create accounts with starting balance)
- *  - Trade system (buy/sell BTC with virtual funds)
- *  - Stores data in db.json using LowDB
- *
- * Author: Alsaher220
- * License: MIT
- */
-
-import express from "express";
-import axios from "axios";
-import { Low } from "lowdb";
-import { JSONFile } from "lowdb/node";
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const DB_FILE = path.join(__dirname, "db.json");
 
-// ------------------------------
-// Database Setup (LowDB + JSON)
-// ------------------------------
-const adapter = new JSONFile("db.json");
-const db = new Low(adapter, { users: [], trades: [] });
-await db.read();
+app.use(express.json());
 
-// Ensure db.json always has structure
-db.data ||= { users: [], trades: [] };
-await db.write();
+// Serve static frontend files from "public"
+app.use(express.static(path.join(__dirname, "public")));
 
-// ------------------------------
-// Middleware
-// ------------------------------
-app.use(express.json());            // Parse JSON requests
-app.use(express.static("public"));  // Serve frontend files
-
-// ------------------------------
-// Routes
-// ------------------------------
-
-// Health check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", server: "Realistic Bitcoin Trader" });
-});
-
-// Get live BTC price (from CoinGecko)
-app.get("/api/price", async (req, res) => {
+// Helper: Load database
+function loadDB() {
   try {
-    const response = await axios.get(
-      "https://api.coingecko.com/api/v3/simple/price",
-      { params: { ids: "bitcoin", vs_currencies: "usd" } }
-    );
-    res.json(response.data.bitcoin);
-  } catch (error) {
-    console.error("❌ Error fetching BTC price:", error.message);
-    res.status(500).json({ error: "Failed to fetch price" });
+    const data = fs.readFileSync(DB_FILE, "utf8");
+    return JSON.parse(data);
+  } catch (err) {
+    console.error("Error reading db.json:", err);
+    return { users: [], trades: [] };
   }
-});
+}
+
+// Helper: Save database
+function saveDB(db) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+}
+
+// ----------- API ROUTES -----------
 
 // Get all users
 app.get("/api/users", (req, res) => {
-  res.json(db.data.users);
+  const db = loadDB();
+  res.json(db.users);
+});
+
+// Get single user by ID
+app.get("/api/users/:id", (req, res) => {
+  const db = loadDB();
+  const user = db.users.find(u => u.id === parseInt(req.params.id));
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json(user);
 });
 
 // Create a new user
-app.post("/api/users", async (req, res) => {
-  const { name } = req.body;
-  if (!name) return res.status(400).json({ error: "Name is required" });
-
+app.post("/api/users", (req, res) => {
+  const db = loadDB();
   const newUser = {
     id: Date.now(),
-    name,
-    cash: 10000, // default starting balance
-    btc: 0
+    name: req.body.name || "Trader",
+    cash: req.body.cash || 10000,
+    btc: req.body.btc || 0
   };
-
-  db.data.users.push(newUser);
-  await db.write();
-
-  console.log(`👤 New user created: ${name} (ID: ${newUser.id})`);
+  db.users.push(newUser);
+  saveDB(db);
   res.json(newUser);
 });
 
-// Execute a trade
-app.post("/api/trade", async (req, res) => {
-  const { userId, type, amount, price } = req.body;
+// Handle a trade (buy/sell)
+app.post("/api/trade", (req, res) => {
+  const { userId, type, amount } = req.body;
+  const db = loadDB();
+  const user = db.users.find(u => u.id === userId);
 
-  if (!userId || !type || !amount || !price) {
-    return res.status(400).json({ error: "Missing trade parameters" });
-  }
-
-  const user = db.data.users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: "User not found" });
+  if (!["buy", "sell"].includes(type)) return res.status(400).json({ error: "Invalid trade type" });
+
+  // Simulated BTC price (for demo, frontend chart fetches real price separately)
+  const price = 30000 + Math.floor(Math.random() * 2000);
 
   if (type === "buy") {
     const cost = amount * price;
-    if (user.cash >= cost) {
-      user.cash -= cost;
-      user.btc += amount;
-    } else {
-      return res.status(400).json({ error: "Insufficient cash balance" });
-    }
+    if (user.cash < cost) return res.status(400).json({ error: "Not enough cash" });
+    user.cash -= cost;
+    user.btc += amount;
   } else if (type === "sell") {
-    if (user.btc >= amount) {
-      user.btc -= amount;
-      user.cash += amount * price;
-    } else {
-      return res.status(400).json({ error: "Insufficient BTC balance" });
-    }
-  } else {
-    return res.status(400).json({ error: "Invalid trade type" });
+    if (user.btc < amount) return res.status(400).json({ error: "Not enough BTC" });
+    user.cash += amount * price;
+    user.btc -= amount;
   }
 
-  const trade = { userId, type, amount, price, date: new Date().toISOString() };
-  db.data.trades.push(trade);
-  await db.write();
+  const trade = {
+    userId,
+    type,
+    amount,
+    price,
+    date: new Date().toISOString()
+  };
 
-  console.log(`💱 Trade executed: ${type} ${amount} BTC @ $${price} (User ${userId})`);
-  res.json({ user, trade });
+  db.trades.push(trade);
+  saveDB(db);
+
+  res.json({ message: "Trade successful", user, trade });
 });
 
-// Get trade history
-app.get("/api/trades", (req, res) => {
-  res.json(db.data.trades);
-});
+// ----------- START SERVER -----------
 
-// ------------------------------
-// Start Server
-// ------------------------------
 app.listen(PORT, () => {
-  console.log(`🚀 Realistic Bitcoin Trader running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
