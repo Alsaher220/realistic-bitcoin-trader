@@ -1,20 +1,23 @@
-let userId = 1; // Default demo user (Zaza)
+// -------------------- CONFIG --------------------
+let userId = 1; // Default user (replace later with signup/login if needed)
 
-// Fetch user balance from backend
+// -------------------- FETCH USER DATA --------------------
 async function fetchUser() {
   try {
     let res = await fetch(`/api/users/${userId}`);
-    if (!res.ok) throw new Error("User not found");
+    if (!res.ok) {
+      console.error("Error fetching user:", res.statusText);
+      return;
+    }
     let user = await res.json();
-
     document.getElementById("cash").innerText = user.cash.toFixed(2);
     document.getElementById("btc").innerText = user.btc.toFixed(4);
   } catch (err) {
-    console.error("⚠️ Error fetching user:", err);
+    console.error("Fetch user failed:", err);
   }
 }
 
-// Buy BTC
+// -------------------- BUY BTC --------------------
 async function buyBTC() {
   let amount = parseFloat(document.getElementById("amount").value);
   if (isNaN(amount) || amount <= 0) {
@@ -22,26 +25,22 @@ async function buyBTC() {
     return;
   }
 
-  try {
-    let res = await fetch(`/api/trade`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, type: "buy", amount })
-    });
+  let res = await fetch(`/api/trade`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, type: "buy", amount })
+  });
 
-    let data = await res.json();
-    if (!res.ok) {
-      alert(data.error || "Trade failed");
-      return;
-    }
-
-    fetchUser(); // refresh balance
-  } catch (err) {
-    console.error("⚠️ Buy error:", err);
+  if (!res.ok) {
+    let err = await res.json();
+    alert(err.error || "Trade failed");
+    return;
   }
+
+  await fetchUser();
 }
 
-// Sell BTC
+// -------------------- SELL BTC --------------------
 async function sellBTC() {
   let amount = parseFloat(document.getElementById("amount").value);
   if (isNaN(amount) || amount <= 0) {
@@ -49,26 +48,22 @@ async function sellBTC() {
     return;
   }
 
-  try {
-    let res = await fetch(`/api/trade`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, type: "sell", amount })
-    });
+  let res = await fetch(`/api/trade`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, type: "sell", amount })
+  });
 
-    let data = await res.json();
-    if (!res.ok) {
-      alert(data.error || "Trade failed");
-      return;
-    }
-
-    fetchUser();
-  } catch (err) {
-    console.error("⚠️ Sell error:", err);
+  if (!res.ok) {
+    let err = await res.json();
+    alert(err.error || "Trade failed");
+    return;
   }
+
+  await fetchUser();
 }
 
-// Setup BTC Price Chart
+// -------------------- PRICE CHART --------------------
 const ctx = document.getElementById("priceChart").getContext("2d");
 const chart = new Chart(ctx, {
   type: "line",
@@ -86,16 +81,16 @@ const chart = new Chart(ctx, {
   options: {
     responsive: true,
     plugins: {
-      legend: { labels: { color: "#fff" } }
+      legend: { labels: { color: "white" } }
     },
     scales: {
-      x: { ticks: { color: "#fff" } },
-      y: { ticks: { color: "#fff" } }
+      x: { ticks: { color: "white" } },
+      y: { ticks: { color: "white" } }
     }
   }
 });
 
-// Fetch live BTC price every 5 seconds
+// -------------------- FETCH LIVE PRICE --------------------
 async function fetchPrices() {
   try {
     let res = await fetch("https://api.coindesk.com/v1/bpi/currentprice.json");
@@ -105,19 +100,18 @@ async function fetchPrices() {
     chart.data.labels.push(new Date().toLocaleTimeString());
     chart.data.datasets[0].data.push(price);
 
-    // Keep only last 15 prices
-    if (chart.data.labels.length > 15) {
+    if (chart.data.labels.length > 10) {
       chart.data.labels.shift();
       chart.data.datasets[0].data.shift();
     }
 
     chart.update();
   } catch (err) {
-    console.error("⚠️ Price fetch error:", err);
+    console.error("Error fetching BTC price:", err);
   }
 }
 
-// Initialize app
-fetchUser();
-fetchPrices();
-setInterval(fetchPrices, 5000);
+// -------------------- INIT APP --------------------
+setInterval(fetchPrices, 5000); // Update price every 5s
+fetchUser();    // Load balance from server
+fetchPrices();  // Load first price
