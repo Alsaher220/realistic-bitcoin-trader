@@ -5,24 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Realistic Bitcoin Trader</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js for price graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Realistic Bitcoin Trader</h1>
+  <main>
+    <h1>💹 Realistic Bitcoin Trader</h1>
 
-  <div id="balance">
-    <p><strong>Cash:</strong> $<span id="cash">0</span></p>
-    <p><strong>BTC:</strong> <span id="btc">0</span></p>
-  </div>
+    <!-- Balance Display -->
+    <section id="balance">
+      <p><strong>Cash:</strong> $<span id="cash">0</span></p>
+      <p><strong>BTC:</strong> <span id="btc">0</span></p>
+    </section>
 
-  <div id="trade">
-    <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01" />
-    <button onclick="buyBTC()">Buy</button>
-    <button onclick="sellBTC()">Sell</button>
-  </div>
+    <!-- Trading Controls -->
+    <section id="trade">
+      <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01" />
+      <button onclick="buyBTC()">Buy</button>
+      <button onclick="sellBTC()">Sell</button>
+    </section>
 
-  <canvas id="priceChart"></canvas>
+    <!-- Chart -->
+    <canvas id="priceChart"></canvas>
+  </main>
 
+  <!-- Fallback -->
+  <noscript>
+    <p style="color:red; text-align:center;">
+      This app requires JavaScript to run. Please enable JavaScript in your browser.
+    </p>
+  </noscript>
+
+  <!-- Your logic -->
   <script src="app.js"></script>
 </body>
 </html>
