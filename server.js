@@ -1,86 +1,82 @@
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
+import express from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import { Low } from "lowdb";
+import { JSONFile } from "lowdb/node";
+import { nanoid } from "nanoid";
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static("public"));
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+// ---- DB Setup ----
+const adapter = new JSONFile("db.json");
+const db = new Low(adapter, { users: [] });
+await db.read();
+db.data ||= { users: [] };
 
-const DB_FILE = path.join(__dirname, "db.json");
+// ---- LOGIN ----
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+  let user = db.data.users.find(u => u.username === username);
 
-// Load DB
-function loadDB() {
-  return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-}
+  if (!user) {
+    // Create demo user
+    user = {
+      id: nanoid(),
+      username,
+      password, // not secure, but demo
+      cash: 10000,
+      btc: 0,
+      trades: []
+    };
+    db.data.users.push(user);
+    await db.write();
+  }
 
-// Save DB
-function saveDB(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
-
-// -------------------- API --------------------
-
-// Get all users
-app.get("/api/users", (req, res) => {
-  const db = loadDB();
-  res.json(db.users);
+  res.json({ id: user.id, username: user.username });
 });
 
-// Get single user
-app.get("/api/users/:id", (req, res) => {
-  const db = loadDB();
-  const user = db.users.find(u => u.id === parseInt(req.params.id));
+// ---- GET USER ----
+app.get("/api/users/:id", async (req, res) => {
+  const user = db.data.users.find(u => u.id === req.params.id);
   if (!user) return res.status(404).json({ error: "User not found" });
   res.json(user);
 });
 
-// Trade (buy/sell)
-app.post("/api/trade", (req, res) => {
-  const { userId, type, amount } = req.body;
-  const db = loadDB();
-  const user = db.users.find(u => u.id === userId);
+// ---- TRADE ----
+app.post("/api/trade", async (req, res) => {
+  const { userId, type, amount, price } = req.body;
+  const user = db.data.users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: "User not found" });
 
-  const price = 30000; // Static price for demo (could be live API)
+  const tradePrice = price || 50000; // fallback
+  const usdCost = amount * tradePrice;
+
   if (type === "buy") {
-    const cost = amount * price;
-    if (user.cash < cost) return res.status(400).json({ error: "Not enough cash" });
-    user.cash -= cost;
+    if (user.cash < usdCost) return res.status(400).json({ error: "Not enough cash" });
+    user.cash -= usdCost;
     user.btc += amount;
   } else if (type === "sell") {
     if (user.btc < amount) return res.status(400).json({ error: "Not enough BTC" });
     user.btc -= amount;
-    user.cash += amount * price;
+    user.cash += usdCost;
   }
 
-  // Save trade
-  db.trades.push({
-    userId,
+  const trade = {
+    id: nanoid(),
     type,
     amount,
-    price,
+    price: tradePrice,
     date: new Date().toISOString()
-  });
+  };
+  user.trades.push(trade);
 
-  saveDB(db);
-  res.json(user);
+  await db.write();
+  res.json(trade);
 });
 
-// Get all trades
-app.get("/api/trades", (req, res) => {
-  const db = loadDB();
-  res.json(db.trades);
-});
-
-// Get trades for a specific user
-app.get("/api/trades/:userId", (req, res) => {
-  const db = loadDB();
-  const trades = db.trades.filter(t => t.userId === parseInt(req.params.userId));
-  res.json(trades);
-});
-
-// -------------------- SERVER --------------------
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// ---- START SERVER ----
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
