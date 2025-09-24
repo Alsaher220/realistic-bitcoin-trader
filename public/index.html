@@ -1,56 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Realistic Bitcoin Trader — Demo</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Realistic Bitcoin Trader</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
-    <!-- LOGIN -->
-    <div id="loginPanel" class="card center">
-      <h1>Realistic Bitcoin Trader</h1>
-      <p class="muted">Demo — enter any username & password to start</p>
-      <input id="loginName" placeholder="Username" />
-      <input id="loginPass" placeholder="Password" type="password" />
-      <div class="btnRow">
-        <button id="btnLogin" class="btn primary">Login / Create Demo</button>
-      </div>
-    </div>
+  <div id="login" class="card">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>
 
-    <!-- APP -->
-    <div id="appPanel" class="card" style="display:none;">
-      <div class="topRow">
-        <h2>Welcome, <span id="usernameDisplay"></span></h2>
-        <button id="btnLogout" class="btn small">Logout</button>
-      </div>
+  <div id="app" style="display:none;">
+    <header>
+      <h1>Bitcoin Trader</h1>
+      <p>Welcome, <span id="usernameDisplay"></span></p>
+    </header>
 
-      <div class="balances">
-        <div><strong>Cash</strong><div class="big" id="cashDisplay">$0.00</div></div>
-        <div><strong>BTC</strong><div class="big" id="btcDisplay">0.00000000</div></div>
-      </div>
+    <section id="balance" class="card">
+      <p><strong>Cash:</strong> $<span id="cash">0</span></p>
+      <p><strong>BTC:</strong> <span id="btc">0</span></p>
+    </section>
 
-      <div class="tradeCard">
-        <input id="amountInput" type="number" step="0.0001" placeholder="Amount (BTC)" />
-        <div class="tradeButtons">
-          <button id="btnBuy" class="btn buy">Buy</button>
-          <button id="btnSell" class="btn sell">Sell</button>
-        </div>
-        <div class="priceNote">Live price shown on chart below — trades use the latest fetched price.</div>
-      </div>
+    <section id="trade" class="card">
+      <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01" />
+      <button onclick="buyBTC()">Buy</button>
+      <button onclick="sellBTC()">Sell</button>
+    </section>
 
-      <div class="chartWrap">
-        <canvas id="priceChart"></canvas>
-      </div>
+    <section class="card">
+      <canvas id="priceChart"></canvas>
+    </section>
 
+    <section class="card">
       <h3>Trade History</h3>
-      <table class="tradeTable">
-        <thead><tr><th>Type</th><th>Amount</th><th>Price (USD)</th><th>Date</th></tr></thead>
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Amount</th><th>Price</th><th>Date</th></tr>
+        </thead>
         <tbody id="tradeHistory"></tbody>
       </table>
-    </div>
+    </section>
   </div>
 
   <script src="script.js"></script>
