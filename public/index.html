@@ -8,38 +8,33 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Realistic Bitcoin Trader</h1>
+  <h1>💹 Realistic Bitcoin Trader</h1>
 
-  <!-- Balance Section -->
   <div id="balance">
+    <p><strong>User:</strong> <span id="username"></span></p>
     <p><strong>Cash:</strong> $<span id="cash">0</span></p>
     <p><strong>BTC:</strong> <span id="btc">0</span></p>
   </div>
 
-  <!-- Trade Controls -->
   <div id="trade">
     <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01" />
     <button onclick="buyBTC()">Buy</button>
     <button onclick="sellBTC()">Sell</button>
   </div>
 
-  <!-- Price Chart -->
   <canvas id="priceChart"></canvas>
 
-  <!-- Trade History -->
   <h2>Trade History</h2>
-  <table id="tradeTable">
+  <table border="1" width="100%">
     <thead>
       <tr>
         <th>Type</th>
-        <th>Amount (BTC)</th>
-        <th>Price (USD)</th>
+        <th>Amount</th>
+        <th>Price</th>
         <th>Date</th>
       </tr>
     </thead>
-    <tbody id="tradeHistory">
-      <!-- Trades will be injected here by app.js -->
-    </tbody>
+    <tbody id="tradeHistory"></tbody>
   </table>
 
   <script src="app.js"></script>
