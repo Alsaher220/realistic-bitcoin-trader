@@ -5,38 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Realistic Bitcoin Trader</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Chart.js for price graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <main>
-    <h1>💹 Realistic Bitcoin Trader</h1>
+  <h1>Realistic Bitcoin Trader</h1>
 
-    <!-- Balance Display -->
-    <section id="balance">
-      <p><strong>Cash:</strong> $<span id="cash">0</span></p>
-      <p><strong>BTC:</strong> <span id="btc">0</span></p>
-    </section>
+  <!-- Balance Section -->
+  <div id="balance">
+    <p><strong>Cash:</strong> $<span id="cash">0</span></p>
+    <p><strong>BTC:</strong> <span id="btc">0</span></p>
+  </div>
 
-    <!-- Trading Controls -->
-    <section id="trade">
-      <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01" />
-      <button onclick="buyBTC()">Buy</button>
-      <button onclick="sellBTC()">Sell</button>
-    </section>
+  <!-- Trade Controls -->
+  <div id="trade">
+    <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01" />
+    <button onclick="buyBTC()">Buy</button>
+    <button onclick="sellBTC()">Sell</button>
+  </div>
 
-    <!-- Chart -->
-    <canvas id="priceChart"></canvas>
-  </main>
+  <!-- Price Chart -->
+  <canvas id="priceChart"></canvas>
 
-  <!-- Fallback -->
-  <noscript>
-    <p style="color:red; text-align:center;">
-      This app requires JavaScript to run. Please enable JavaScript in your browser.
-    </p>
-  </noscript>
+  <!-- Trade History -->
+  <h2>Trade History</h2>
+  <table id="tradeTable">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Amount (BTC)</th>
+        <th>Price (USD)</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="tradeHistory">
+      <!-- Trades will be injected here by app.js -->
+    </tbody>
+  </table>
 
-  <!-- Your logic -->
   <script src="app.js"></script>
 </body>
 </html>
