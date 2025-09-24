@@ -1,35 +1,48 @@
-/* style.css - broker-ish dark theme */
-:root {
-  --bg: #0f1113;
-  --card: #151617;
-  --muted: #9aa0a6;
-  --accent: #f7931a;
-  --green: #23c552;
-  --red: #ff4d4f;
+body {
+  font-family: Arial, sans-serif;
+  background: #0d1117;
+  color: white;
+  margin: 0;
+  padding: 20px;
 }
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:#fff;font-family:Inter,Arial,Helvetica,sans-serif}
-.container{max-width:920px;margin:28px auto;padding:12px}
-.card{background:var(--card);padding:18px;border-radius:12px;margin-bottom:18px;box-shadow:0 6px 18px rgba(0,0,0,.6)}
-.center{text-align:center}
-.muted{color:var(--muted)}
-input{width:100%;padding:10px;border-radius:8px;border:1px solid #222;background:#0b0b0b;color:#fff;margin:8px 0}
-.btnRow{display:flex;gap:10px;justify-content:center;margin-top:8px}
-.btn{padding:10px 14px;border-radius:8px;border:none;cursor:pointer;background:#222;color:#fff}
-.btn.primary{background:var(--accent);color:#111;font-weight:600}
-.btn.small{padding:6px 10px;font-size:14px}
-.topRow{display:flex;justify-content:space-between;align-items:center}
-.balances{display:flex;gap:16px;justify-content:space-around;margin:16px 0}
-.big{font-size:20px;margin-top:6px}
-.tradeCard{display:flex;flex-direction:column;gap:8px;margin:12px 0}
-.tradeButtons{display:flex;gap:10px}
-.btn.buy{background:var(--green);color:#04140b;font-weight:700}
-.btn.sell{background:var(--red);color:#fff;font-weight:700}
-.priceNote{color:var(--muted);font-size:13px;margin-top:8px}
-.chartWrap{background:#0b0b0b;padding:12px;border-radius:8px;margin-top:12px}
-.tradeTable{width:100%;border-collapse:collapse;margin-top:12px}
-.tradeTable th, .tradeTable td{padding:10px;border-bottom:1px solid #222;color:var(--muted);text-align:left}
-.tradeTable th{color:#fff}
-@media (max-width:600px){
-  .balances{flex-direction:column;align-items:center}
+
+header {
+  background: #161b22;
+  padding: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.card {
+  background: #161b22;
+  padding: 20px;
+  margin: 10px auto;
+  max-width: 500px;
+  border-radius: 8px;
+}
+
+input, button {
+  display: block;
+  margin: 10px auto;
+  padding: 10px;
+  width: 90%;
+  border-radius: 5px;
+  border: none;
+}
+
+button {
+  background: #f7931a;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th, table td {
+  padding: 8px;
+  border-bottom: 1px solid #333;
 }
