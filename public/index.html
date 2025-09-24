@@ -1,42 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>Realistic Bitcoin Trader</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>💹 Realistic Bitcoin Trader</h1>
-
-  <div id="balance">
-    <p><strong>User:</strong> <span id="username"></span></p>
-    <p><strong>Cash:</strong> $<span id="cash">0</span></p>
-    <p><strong>BTC:</strong> <span id="btc">0</span></p>
+  <div id="login">
+    <h2>Login</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
   </div>
 
-  <div id="trade">
-    <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01" />
+  <div id="app" style="display:none;">
+    <h2>Welcome, <span id="usernameDisplay"></span></h2>
+    <p>Cash: $<span id="cash">0</span></p>
+    <p>BTC: <span id="btc">0</span></p>
+
+    <input id="amount" placeholder="Amount BTC">
     <button onclick="buyBTC()">Buy</button>
     <button onclick="sellBTC()">Sell</button>
+
+    <canvas id="priceChart"></canvas>
+
+    <h3>Trade History</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th><th>Amount</th><th>Price</th><th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="tradeHistory"></tbody>
+    </table>
   </div>
 
-  <canvas id="priceChart"></canvas>
-
-  <h2>Trade History</h2>
-  <table border="1" width="100%">
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Amount</th>
-        <th>Price</th>
-        <th>Date</th>
-      </tr>
-    </thead>
-    <tbody id="tradeHistory"></tbody>
-  </table>
-
-  <script src="app.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
