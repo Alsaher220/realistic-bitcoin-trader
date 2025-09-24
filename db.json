@@ -3,37 +3,50 @@
     {
       "id": 1,
       "name": "Zaza",
-      "cash": 9700,
-      "btc": 0.35
+      "cash": 100000,
+      "btc": 2
     },
     {
       "id": 2,
-      "name": "Bob",
-      "cash": 7500,
-      "btc": 0.1
+      "name": "Cash",
+      "cash": 50000,
+      "btc": 1.5
+    },
+    {
+      "id": 3,
+      "name": "BTC King",
+      "cash": 250000,
+      "btc": 5
     }
   ],
   "trades": [
     {
       "userId": 1,
       "type": "buy",
-      "amount": 0.1,
-      "price": 29000,
-      "date": "2025-09-20T15:00:00.000Z"
-    },
-    {
-      "userId": 2,
-      "type": "sell",
-      "amount": 0.05,
-      "price": 30500,
-      "date": "2025-09-20T15:05:00.000Z"
+      "amount": 0.5,
+      "price": 30000,
+      "date": "2025-09-20T10:00:00.000Z"
     },
     {
       "userId": 1,
-      "type": "buy",
+      "type": "sell",
       "amount": 0.2,
+      "price": 31000,
+      "date": "2025-09-21T14:30:00.000Z"
+    },
+    {
+      "userId": 2,
+      "type": "buy",
+      "amount": 1,
       "price": 29500,
-      "date": "2025-09-20T15:10:00.000Z"
+      "date": "2025-09-22T09:15:00.000Z"
+    },
+    {
+      "userId": 3,
+      "type": "sell",
+      "amount": 0.3,
+      "price": 32000,
+      "date": "2025-09-22T11:45:00.000Z"
     }
   ]
 }
