@@ -1,71 +1,123 @@
-let cash = 10000; // starting balance
-let btc = 0;
-let price = 20000; // starting price
-const priceHistory = [price];
+let userId = 1; // Default demo user (Zaza)
 
-const cashEl = document.getElementById("cash");
-const btcEl = document.getElementById("btc");
-const amountEl = document.getElementById("amount");
+// Fetch user balance from backend
+async function fetchUser() {
+  try {
+    let res = await fetch(`/api/users/${userId}`);
+    if (!res.ok) throw new Error("User not found");
+    let user = await res.json();
 
-cashEl.textContent = cash.toFixed(2);
-btcEl.textContent = btc;
-
-function updateUI() {
-  cashEl.textContent = cash.toFixed(2);
-  btcEl.textContent = btc.toFixed(4);
-  chart.update();
-}
-
-function buyBTC() {
-  const amount = parseFloat(amountEl.value);
-  if (amount * price <= cash) {
-    cash -= amount * price;
-    btc += amount;
-    updateUI();
-  } else {
-    alert("Not enough cash!");
+    document.getElementById("cash").innerText = user.cash.toFixed(2);
+    document.getElementById("btc").innerText = user.btc.toFixed(4);
+  } catch (err) {
+    console.error("⚠️ Error fetching user:", err);
   }
 }
 
-function sellBTC() {
-  const amount = parseFloat(amountEl.value);
-  if (amount <= btc) {
-    cash += amount * price;
-    btc -= amount;
-    updateUI();
-  } else {
-    alert("Not enough BTC!");
+// Buy BTC
+async function buyBTC() {
+  let amount = parseFloat(document.getElementById("amount").value);
+  if (isNaN(amount) || amount <= 0) {
+    alert("Enter a valid BTC amount");
+    return;
+  }
+
+  try {
+    let res = await fetch(`/api/trade`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, type: "buy", amount })
+    });
+
+    let data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Trade failed");
+      return;
+    }
+
+    fetchUser(); // refresh balance
+  } catch (err) {
+    console.error("⚠️ Buy error:", err);
   }
 }
 
-// Chart.js for price graph
+// Sell BTC
+async function sellBTC() {
+  let amount = parseFloat(document.getElementById("amount").value);
+  if (isNaN(amount) || amount <= 0) {
+    alert("Enter a valid BTC amount");
+    return;
+  }
+
+  try {
+    let res = await fetch(`/api/trade`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, type: "sell", amount })
+    });
+
+    let data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Trade failed");
+      return;
+    }
+
+    fetchUser();
+  } catch (err) {
+    console.error("⚠️ Sell error:", err);
+  }
+}
+
+// Setup BTC Price Chart
 const ctx = document.getElementById("priceChart").getContext("2d");
 const chart = new Chart(ctx, {
   type: "line",
   data: {
-    labels: [0],
+    labels: [],
     datasets: [{
       label: "BTC Price (USD)",
-      data: priceHistory,
+      data: [],
       borderColor: "#f7931a",
       borderWidth: 2,
-      fill: false
+      fill: false,
+      tension: 0.1
     }]
   },
   options: {
     responsive: true,
+    plugins: {
+      legend: { labels: { color: "#fff" } }
+    },
     scales: {
-      y: { beginAtZero: false }
+      x: { ticks: { color: "#fff" } },
+      y: { ticks: { color: "#fff" } }
     }
   }
 });
 
-// Simulate price changes
-setInterval(() => {
-  const change = (Math.random() - 0.5) * 500;
-  price += change;
-  price = Math.max(price, 1000);
-  priceHistory.push(price);
-  chart.data.labels.push(priceHistory.length - 1);
-  chart.update();
-}, 2000);
+// Fetch live BTC price every 5 seconds
+async function fetchPrices() {
+  try {
+    let res = await fetch("https://api.coindesk.com/v1/bpi/currentprice.json");
+    let data = await res.json();
+    let price = data.bpi.USD.rate_float;
+
+    chart.data.labels.push(new Date().toLocaleTimeString());
+    chart.data.datasets[0].data.push(price);
+
+    // Keep only last 15 prices
+    if (chart.data.labels.length > 15) {
+      chart.data.labels.shift();
+      chart.data.datasets[0].data.shift();
+    }
+
+    chart.update();
+  } catch (err) {
+    console.error("⚠️ Price fetch error:", err);
+  }
+}
+
+// Initialize app
+fetchUser();
+fetchPrices();
+setInterval(fetchPrices, 5000);
