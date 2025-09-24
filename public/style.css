@@ -1,48 +1,19 @@
 body {
-  font-family: Arial, sans-serif;
   background: #111;
-  color: #eee;
+  color: white;
+  font-family: Arial, sans-serif;
   text-align: center;
-  padding: 20px;
 }
-
-h1 {
-  color: #f7931a; /* Bitcoin orange */
-}
-
-#balance {
-  margin: 20px 0;
-  font-size: 18px;
-}
-
-#trade {
-  margin: 20px 0;
-}
-
-input {
-  padding: 10px;
-  font-size: 16px;
-  width: 200px;
-}
-
-button {
-  padding: 10px 20px;
+input, button {
   margin: 5px;
-  background: #f7931a;
-  border: none;
-  color: #fff;
-  font-size: 16px;
-  cursor: pointer;
+  padding: 8px;
 }
-
-button:hover {
-  background: #e07b00;
+table {
+  margin: auto;
+  border-collapse: collapse;
+  width: 80%;
 }
-
-canvas {
-  max-width: 700px;
-  margin: 20px auto;
-  background: #222;
-  padding: 10px;
-  border-radius: 8px;
+th, td {
+  border: 1px solid white;
+  padding: 8px;
 }
