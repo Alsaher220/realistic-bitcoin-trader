@@ -11,6 +11,7 @@ async function fetchUser() {
       return;
     }
     let user = await res.json();
+    document.getElementById("username").innerText = user.name;
     document.getElementById("cash").innerText = user.cash.toFixed(2);
     document.getElementById("btc").innerText = user.btc.toFixed(4);
   } catch (err) {
@@ -117,24 +118,14 @@ async function fetchPrices() {
 // -------------------- FETCH TRADES --------------------
 async function fetchTrades() {
   try {
-    let res = await fetch(`${BASE_URL}/api/users/${userId}`);
+    let res = await fetch(`${BASE_URL}/api/trades/${userId}`);
     if (!res.ok) {
       console.error("Error fetching trades:", res.statusText);
       return;
     }
-    let user = await res.json();
+    let trades = await res.json();
 
     let tableBody = document.getElementById("tradeHistory");
-    tableBody.innerHTML = "";
-
-    // For now, backend doesn’t send trades with user directly
-    // So we need to fetch all trades (better if we add /api/trades endpoint later)
-    let resTrades = await fetch(`${BASE_URL}/api/users`);
-    let users = await resTrades.json();
-
-    // Placeholder (backend upgrade needed for real trades)
-    let trades = []; 
-
     tableBody.innerHTML = trades.map(t => `
       <tr>
         <td>${t.type.toUpperCase()}</td>
