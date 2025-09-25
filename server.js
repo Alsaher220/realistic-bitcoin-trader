@@ -41,6 +41,17 @@ app.use(express.static(path.join(__dirname, 'public')));
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS withdrawals (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      amount NUMERIC NOT NULL,
+      wallet TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Ensure admin account exists
   const adminCheck = await pool.query(`SELECT * FROM users WHERE username=$1`, ['admin']);
   if (adminCheck.rows.length === 0) {
@@ -61,10 +72,7 @@ app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   try {
     const hashed = await bcrypt.hash(password, 10);
-    await pool.query(
-      `INSERT INTO users (username, password) VALUES ($1,$2)`,
-      [username, hashed]
-    );
+    await pool.query(`INSERT INTO users (username, password) VALUES ($1,$2)`, [username, hashed]);
     res.json({ success: true, message: "Account created" });
   } catch (err) {
     res.json({ success: false, message: "Username exists" });
@@ -119,14 +127,48 @@ app.post('/sell', async (req, res) => {
   res.json({ success: true });
 });
 
+// ================= WITHDRAWAL SYSTEM =================
+
+// User requests withdrawal with safety checks
+app.post('/withdraw', async (req, res) => {
+  const { userId, amount, wallet } = req.body;
+  try {
+    if (amount <= 0) return res.json({ success: false, message: "Invalid withdrawal amount" });
+
+    const userRes = await pool.query(`SELECT * FROM users WHERE id=$1`, [userId]);
+    const user = userRes.rows[0];
+
+    if (!user) return res.json({ success: false, message: "User not found" });
+    if (user.cash < amount) return res.json({ success: false, message: "Not enough balance" });
+
+    await pool.query(`UPDATE users SET cash=cash-$1 WHERE id=$2`, [amount, userId]);
+    await pool.query(`INSERT INTO withdrawals (user_id, amount, wallet) VALUES ($1,$2,$3)`, [userId, amount, wallet]);
+
+    res.json({ success: true, message: "Withdrawal request submitted!" });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Withdrawal failed" });
+  }
+});
+
+// User withdrawal history
+app.get('/user/:id/withdrawals', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(`SELECT * FROM withdrawals WHERE user_id=$1 ORDER BY date DESC`, [id]);
+    res.json({ success: true, withdrawals: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Failed to fetch withdrawal history" });
+  }
+});
+
 // ================= ADMIN ROUTES =================
 
 // List all users
 app.get('/admin/users', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, username, cash, btc FROM users WHERE role='user'`
-    );
+    const result = await pool.query(`SELECT id, username, cash, btc FROM users WHERE role='user'`);
     res.json({ success: true, users: result.rows });
   } catch (err) {
     console.error(err);
@@ -154,14 +196,39 @@ app.get('/admin/trades', async (req, res) => {
 app.post('/admin/topup', async (req, res) => {
   const { userId, cash, btc } = req.body;
   try {
-    await pool.query(
-      `UPDATE users SET cash=cash+$1, btc=btc+$2 WHERE id=$3`,
-      [cash, btc, userId]
-    );
+    await pool.query(`UPDATE users SET cash=cash+$1, btc=btc+$2 WHERE id=$3`, [cash, btc, userId]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.json({ success: false, message: "Error topping up" });
+  }
+});
+
+// Admin view all withdrawals
+app.get('/admin/withdrawals', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT withdrawals.*, users.username
+      FROM withdrawals
+      JOIN users ON withdrawals.user_id = users.id
+      ORDER BY withdrawals.date DESC
+    `);
+    res.json({ success: true, withdrawals: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error fetching withdrawals" });
+  }
+});
+
+// Admin mark withdrawal as processed
+app.post('/admin/withdrawals/process', async (req, res) => {
+  const { id } = req.body;
+  try {
+    await pool.query(`UPDATE withdrawals SET status='processed' WHERE id=$1`, [id]);
+    res.json({ success: true, message: "Withdrawal marked as processed" });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: "Error updating withdrawal" });
   }
 });
 
