@@ -5,16 +5,17 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 const db = new sqlite3.Database('./db.sqlite');
+const PORT = process.env.PORT || 3000;
 
-// --- Middleware ---
+// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Initialize Database ---
+// ------------------- Initialize DB -------------------
 db.serialize(() => {
+    // Users table
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
@@ -23,6 +24,7 @@ db.serialize(() => {
         btc REAL DEFAULT 0
     )`);
 
+    // Trades table
     db.run(`CREATE TABLE IF NOT EXISTS trades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -33,7 +35,7 @@ db.serialize(() => {
         FOREIGN KEY(user_id) REFERENCES users(id)
     )`);
 
-    // Ensure admin exists
+    // Admin account
     const adminPassword = 'Rayyanalsah227@';
     const hashedAdmin = bcrypt.hashSync(adminPassword, 10);
     db.get(`SELECT * FROM users WHERE username = ?`, ['admin'], (err, row) => {
@@ -44,17 +46,17 @@ db.serialize(() => {
     });
 });
 
-// --- Routes ---
+// ------------------- Routes -------------------
 
-// Register new user
+// Register
 app.post('/register', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.json({ success: false, message: 'Enter username and password' });
 
     const hashed = bcrypt.hashSync(password, 10);
-    db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [username, hashed], function(err) {
-        if (err) return res.json({ success: false, message: 'Username already exists' });
-        res.json({ success: true, message: 'Account created successfully' });
+    db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [username, hashed], function(err){
+        if (err) return res.json({ success: false, message: 'Username already taken' });
+        res.json({ success: true, message: 'Account created successfully!' });
     });
 });
 
@@ -66,17 +68,17 @@ app.post('/login', (req, res) => {
         if (!bcrypt.compareSync(password, user.password)) return res.json({ success: false, message: 'Incorrect password' });
 
         if (username === 'admin') return res.json({ success: true, admin: true });
-        res.json({ success: true, admin: false, userId: user.id });
+        return res.json({ success: true, admin: false, userId: user.id });
     });
 });
 
-// Get user info + trades
+// Get user info
 app.get('/user/:id', (req, res) => {
     const userId = req.params.id;
     db.get(`SELECT id, username, cash, btc FROM users WHERE id = ?`, [userId], (err, user) => {
         if (!user) return res.json({ success: false });
         db.all(`SELECT * FROM trades WHERE user_id = ? ORDER BY date DESC`, [userId], (err, trades) => {
-            res.json({ success: true, user, trades });
+            return res.json({ success: true, user, trades });
         });
     });
 });
@@ -84,12 +86,12 @@ app.get('/user/:id', (req, res) => {
 // Buy BTC
 app.post('/buy', (req, res) => {
     const { userId, amount, price } = req.body;
-    const total = parseFloat(amount) * parseFloat(price);
-    db.get(`SELECT cash, btc FROM users WHERE id = ?`, [userId], (err, user) => {
-        if (!user) return res.json({ success: false, message: 'User not found' });
-        if (user.cash < total) return res.json({ success: false, message: 'Insufficient cash' });
+    const totalCost = parseFloat(amount) * parseFloat(price);
 
-        const newCash = user.cash - total;
+    db.get(`SELECT cash, btc FROM users WHERE id = ?`, [userId], (err, user) => {
+        if (user.cash < totalCost) return res.json({ success: false, message: 'Insufficient cash' });
+
+        const newCash = user.cash - totalCost;
         const newBTC = user.btc + parseFloat(amount);
         db.run(`UPDATE users SET cash = ?, btc = ? WHERE id = ?`, [newCash, newBTC, userId], () => {
             const date = new Date().toISOString();
@@ -103,7 +105,6 @@ app.post('/buy', (req, res) => {
 app.post('/sell', (req, res) => {
     const { userId, amount, price } = req.body;
     db.get(`SELECT cash, btc FROM users WHERE id = ?`, [userId], (err, user) => {
-        if (!user) return res.json({ success: false, message: 'User not found' });
         if (user.btc < amount) return res.json({ success: false, message: 'Insufficient BTC' });
 
         const newBTC = user.btc - amount;
@@ -116,31 +117,32 @@ app.post('/sell', (req, res) => {
     });
 });
 
-// Admin routes
+// ------------------- Admin Routes -------------------
+
+// Get all users except admin
 app.get('/admin/users', (req, res) => {
-    db.all(`SELECT id, username, cash, btc FROM users WHERE username != 'admin'`, [], (err, users) => {
+    db.all(`SELECT id, username, cash, btc FROM users WHERE username != 'admin' ORDER BY id ASC`, [], (err, users) => {
+        if(err) return res.json({success:false, message: err.message});
         res.json({ success: true, users });
     });
 });
 
+// Update user's cash or BTC
 app.post('/admin/update', (req, res) => {
     const { userId, cash, btc } = req.body;
-    db.run(`UPDATE users SET cash = ?, btc = ? WHERE id = ?`, [cash, btc, userId], () => res.json({ success: true }));
+    db.run(`UPDATE users SET cash = ?, btc = ? WHERE id = ?`, [cash, btc, userId], (err) => {
+        if(err) return res.json({success:false, message: err.message});
+        res.json({ success: true });
+    });
 });
 
+// Get all trades (admin)
 app.get('/admin/trades', (req, res) => {
     db.all(`SELECT trades.*, users.username FROM trades INNER JOIN users ON trades.user_id = users.id ORDER BY date DESC`, [], (err, trades) => {
+        if(err) return res.json({success:false, message:err.message});
         res.json({ success: true, trades });
     });
 });
 
-// Change password
-app.post('/change-password', (req, res) => {
-    const { userId, newPassword } = req.body;
-    if (!newPassword) return res.json({ success: false, message: 'Enter a password' });
-    const hashed = bcrypt.hashSync(newPassword, 10);
-    db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashed, userId], () => res.json({ success: true, message: 'Password changed successfully' }));
-});
-
-// Start server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// ------------------- Start Server -------------------
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
