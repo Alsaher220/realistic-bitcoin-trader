@@ -7,7 +7,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// SQLite database
+// SQLite database (auto-created if doesn't exist)
 const db = new sqlite3.Database('./db.sqlite', (err)=>{
     if(err) console.error("DB Error: ", err);
     else console.log("Connected to SQLite database");
@@ -40,12 +40,18 @@ db.serialize(() => {
         FOREIGN KEY(user_id) REFERENCES users(id)
     )`);
 
-    // Create admin if not exists
+    // Create admin with your password if not exists
     const adminPassword = 'Rayyanalsah227@';
     const hashedAdmin = bcrypt.hashSync(adminPassword, 10);
     db.get(`SELECT * FROM users WHERE username = ?`, ['admin'], (err, row)=>{
         if(!row){
             db.run(`INSERT INTO users (username,password,cash,btc) VALUES (?,?,0,0)`, ['admin', hashedAdmin]);
+            console.log("Admin account created with your password!");
+        } else {
+            // Update admin password to your known password
+            db.run(`UPDATE users SET password=? WHERE username='admin'`, [hashedAdmin], ()=>{
+                console.log("Admin password updated to your password!");
+            });
         }
     });
 });
