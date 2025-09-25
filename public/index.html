@@ -1,50 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>BTC Trader - Login</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Bitcoin Trader</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .hidden { display: none; }
+    .dashboard { margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    button { padding: 5px 10px; margin: 5px; }
+  </style>
 </head>
 <body>
-<div class="container login-container">
-  <div class="logo">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-      <circle cx="256" cy="256" r="256" fill="#f7931a"/>
-      <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
-    </svg>
-    BTC Trader
+  <h1>🚀 Bitcoin Trader</h1>
+
+  <!-- Auth Section -->
+  <div id="auth-section">
+    <h2>Login</h2>
+    <input id="login-username" placeholder="Username"><br>
+    <input id="login-password" type="password" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
+
+    <h2>Register</h2>
+    <input id="register-username" placeholder="Username"><br>
+    <input id="register-password" type="password" placeholder="Password"><br>
+    <button onclick="register()">Register</button>
   </div>
 
-  <h1>Login</h1>
-  <input type="text" id="username" placeholder="Username">
-  <input type="password" id="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <p id="message"></p>
-  <p>Don't have an account? <a href="register.html">Register here</a></p>
-</div>
+  <!-- User Dashboard -->
+  <div id="user-dashboard" class="hidden dashboard">
+    <h2>User Dashboard</h2>
+    <p><b>Username:</b> <span id="user-name"></span></p>
+    <p><b>Cash:</b> $<span id="user-cash"></span></p>
+    <p><b>BTC:</b> <span id="user-btc"></span></p>
 
-<script>
-document.getElementById('loginBtn').addEventListener('click', async ()=>{
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    if(!username || !password){ document.getElementById('message').textContent='Enter username & password'; return; }
+    <h3>Buy BTC</h3>
+    <input id="buy-amount" placeholder="Amount"><br>
+    <input id="buy-price" placeholder="Price"><br>
+    <button onclick="buy()">Buy</button>
 
-    const res = await fetch('/login', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({username,password})
-    });
-    const data = await res.json();
-    if(!data.success){
-        document.getElementById('message').textContent = data.message;
-    } else {
-        if(data.admin){
-            window.location.href = 'admin-dashboard.html';
+    <h3>Sell BTC</h3>
+    <input id="sell-amount" placeholder="Amount"><br>
+    <input id="sell-price" placeholder="Price"><br>
+    <button onclick="sell()">Sell</button>
+
+    <h3>My Trades</h3>
+    <table>
+      <thead><tr><th>Type</th><th>Amount</th><th>Price</th><th>Date</th></tr></thead>
+      <tbody id="trade-history"></tbody>
+    </table>
+
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Admin Dashboard -->
+  <div id="admin-dashboard" class="hidden dashboard">
+    <h2>Admin Dashboard</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Username</th><th>Cash</th><th>BTC</th><th>Action</th></tr></thead>
+      <tbody id="user-list"></tbody>
+    </table>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    const API = window.location.origin; // same server
+    let currentUser = JSON.parse(localStorage.getItem("user"));
+
+    // 🔄 Auto-login on refresh
+    window.onload = async () => {
+      if (currentUser) {
+        if (currentUser.role === "admin") {
+          await showAdmin();
         } else {
-            window.location.href = `user-dashboard.html?userId=${data.userId}`;
+          await showUser(currentUser.id);
         }
+      }
+    };
+
+    async function register() {
+      const username = document.getElementById("register-username").value;
+      const password = document.getElementById("register-password").value;
+      const res = await fetch(`${API}/register`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      alert(data.message);
     }
-});
-</script>
+
+    async function login() {
+      const username = document.getElementById("login-username").value;
+      const password = document.getElementById("login-password").value;
+      const res = await fetch(`${API}/login`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        currentUser = data.user;
+        if (data.user.role === "admin") await showAdmin();
+        else await showUser(data.user.id);
+      } else {
+        alert(data.message);
+      }
+    }
+
+    async function showUser(id) {
+      document.getElementById("auth-section").classList.add("hidden");
+      document.getElementById("admin-dashboard").classList.add("hidden");
+      document.getElementById("user-dashboard").classList.remove("hidden");
+
+      const res = await fetch(`${API}/user/${id}`);
+      const data = await res.json();
+      if (!data.success) return;
+
+      const u = data.user;
+      document.getElementById("user-name").innerText = u.username;
+      document.getElementById("user-cash").innerText = u.cash;
+      document.getElementById("user-btc").innerText = u.btc;
+
+      const trades = document.getElementById("trade-history");
+      trades.innerHTML = "";
+      data.trades.forEach(t => {
+        trades.innerHTML += `<tr><td>${t.type}</td><td>${t.amount}</td><td>${t.price}</td><td>${t.date}</td></tr>`;
+      });
+    }
+
+    async function buy() {
+      const amount = parseFloat(document.getElementById("buy-amount").value);
+      const price = parseFloat(document.getElementById("buy-price").value);
+      await fetch(`${API}/buy`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: currentUser.id, amount, price })
+      });
+      await showUser(currentUser.id);
+    }
+
+    async function sell() {
+      const amount = parseFloat(document.getElementById("sell-amount").value);
+      const price = parseFloat(document.getElementById("sell-price").value);
+      await fetch(`${API}/sell`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: currentUser.id, amount, price })
+      });
+      await showUser(currentUser.id);
+    }
+
+    async function showAdmin() {
+      document.getElementById("auth-section").classList.add("hidden");
+      document.getElementById("user-dashboard").classList.add("hidden");
+      document.getElementById("admin-dashboard").classList.remove("hidden");
+
+      const res = await fetch(`${API}/admin/users`);
+      const data = await res.json();
+      if (!data.success) return;
+
+      const list = document.getElementById("user-list");
+      list.innerHTML = "";
+      data.users.forEach(u => {
+        list.innerHTML += `
+          <tr>
+            <td>${u.id}</td>
+            <td>${u.username}</td>
+            <td>${u.cash}</td>
+            <td>${u.btc}</td>
+            <td>
+              <button onclick="topUp(${u.id},1000,0)">+ $1000</button>
+              <button onclick="topUp(${u.id},0,1)">+ 1 BTC</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    async function topUp(userId, cash, btc) {
+      await fetch(`${API}/admin/topup`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, cash, btc })
+      });
+      await showAdmin();
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      currentUser = null;
+      document.getElementById("auth-section").classList.remove("hidden");
+      document.getElementById("user-dashboard").classList.add("hidden");
+      document.getElementById("admin-dashboard").classList.add("hidden");
+    }
+  </script>
 </body>
 </html>
