@@ -1,17 +1,15 @@
 {
-  "name": "bitcoin-trading",
+  "name": "bitcoin-trader",
   "version": "1.0.0",
-  "description": "A polished and interactive Bitcoin trading platform with fully functional user and admin dashboards. Users can register, log in, trade BTC, track their portfolio, and view trade history. Admins can manage all users, update balances, and monitor trades. Designed with a clean interface, vibrant colors, and an engaging logo for a smooth demo experience.",
+  "description": "A realistic Bitcoin trading demo with user/admin dashboards, persistent database, and secure login system.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "author": "Rayyanalsah",
-  "license": "MIT",
   "dependencies": {
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.2",
     "express": "^4.18.2",
-    "sqlite3": "^5.1.6"
+    "pg": "^8.11.3"
   }
 }
