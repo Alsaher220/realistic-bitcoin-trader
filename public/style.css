@@ -1,48 +1,52 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #0d1117;
-  color: white;
-  margin: 0;
-  padding: 20px;
+body{
+    font-family: Arial, sans-serif;
+    background:#f2f2f2;
+    margin:0;
+    padding:0;
 }
 
-header {
-  background: #161b22;
-  padding: 10px;
-  margin-bottom: 20px;
-  text-align: center;
+.container{
+    max-width:800px;
+    margin:50px auto;
+    background:#fff;
+    padding:30px;
+    border-radius:8px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
 }
 
-.card {
-  background: #161b22;
-  padding: 20px;
-  margin: 10px auto;
-  max-width: 500px;
-  border-radius: 8px;
+h1,h2{ text-align:center; }
+
+form{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    margin:20px 0;
 }
 
-input, button {
-  display: block;
-  margin: 10px auto;
-  padding: 10px;
-  width: 90%;
-  border-radius: 5px;
-  border: none;
+input[type="text"], input[type="password"], input[type="number"]{
+    padding:10px;
+    font-size:16px;
+    width:100%;
+    box-sizing:border-box;
 }
 
-button {
-  background: #f7931a;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
+button{
+    padding:10px;
+    font-size:16px;
+    cursor:pointer;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
 }
 
-table th, table td {
-  padding: 8px;
-  border-bottom: 1px solid #333;
+table,th,td{
+    border:1px solid #ddd;
+}
+
+th,td{
+    padding:10px;
+    text-align:center;
 }
