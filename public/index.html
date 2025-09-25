@@ -1,36 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Login</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
-    <h1>Bitcoin Trading</h1>
-    <form id="loginForm">
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-    </form>
-    <p id="message"></p>
+<h1>Login</h1>
+<input type="text" id="username" placeholder="Username">
+<input type="password" id="password" placeholder="Password">
+<button id="loginBtn">Login</button>
+<p id="message"></p>
+<p>New user? <a href="register.html">Register here</a></p>
 </div>
+
 <script>
-const form = document.getElementById('loginForm');
-const message = document.getElementById('message');
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+document.getElementById('loginBtn').addEventListener('click', async () => {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
+
+    if(!username || !password){
+        document.getElementById('message').textContent = 'Enter username and password';
+        return;
+    }
+
     const res = await fetch('/login', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({username,password})
     });
+
     const data = await res.json();
-    if(!data.success){ message.textContent = data.message; return; }
-    if(data.admin) window.location.href = '/admin-dashboard.html';
-    else window.location.href = `/user-dashboard.html?userId=${data.userId}`;
+
+    if(!data.success){
+        document.getElementById('message').textContent = data.message;
+        return;
+    }
+
+    // Redirect based on role
+    if(data.admin){
+        window.location.href = 'admin-dashboard.html';
+    } else {
+        window.location.href = `user-dashboard.html?userId=${data.userId}`;
+    }
 });
 </script>
 </body>
