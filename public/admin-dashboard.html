@@ -2,76 +2,167 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin Dashboard - BTC Trader</title>
+<title>BTC Trader - Admin Dashboard</title>
 <link rel="stylesheet" href="style.css">
+<style>
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    background: #1c1c1c;
+    color: #f1f1f1;
+}
+.container {
+    width: 95%;
+    max-width: 1200px;
+    margin: 20px auto;
+}
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f7931a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: #fff;
+}
+header .logo {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 24px;
+}
+header .logo svg {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+}
+header nav a {
+    margin-left: 20px;
+    text-decoration: none;
+    color: #fff;
+    font-weight: bold;
+}
+.card {
+    background: #2c2c2c;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.card h2 { color: #f7931a; }
+input, button {
+    padding: 8px 12px;
+    margin: 5px 0;
+    border-radius: 4px;
+    border: none;
+}
+input { width: 120px; }
+button {
+    background: #f7931a;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+}
+button:hover { opacity: 0.9; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+th, td { padding: 10px; text-align: left; }
+th { background: #333; }
+tr:nth-child(even) { background: #2a2a2a; }
+.logout-btn {
+    background: #ff4c4c;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-weight: bold;
+    float: right;
+    cursor: pointer;
+}
+.logout-btn:hover { opacity: 0.9; }
+</style>
 </head>
 <body>
+
 <div class="container">
-<div class="logo">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-    <circle cx="256" cy="256" r="256" fill="#f7931a"/>
-    <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
-  </svg>
-  BTC Trader
+<header>
+    <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+          <circle cx="256" cy="256" r="256" fill="#f7931a"/>
+          <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
+        </svg>
+        BTC Trader Admin
+    </div>
+    <nav>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </nav>
+</header>
+
+<!-- Users Management -->
+<div class="card">
+    <h2>Users Management</h2>
+    <table id="usersTable">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Cash ($)</th>
+                <th>BTC</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 </div>
 
-<h1>Admin Dashboard</h1>
+<!-- Trade History -->
+<div class="card">
+    <h2>Trade History</h2>
+    <table id="tradesTable">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
 
-<h2>Users</h2>
-<table id="usersTable">
-    <thead>
-        <tr>
-            <th>Username</th>
-            <th>Cash</th>
-            <th>BTC</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
-
-<h2>Trade History</h2>
-<table id="tradesTable">
-    <thead>
-        <tr>
-            <th>User</th>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Price</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
 </div>
 
 <script>
-const usersBody=document.querySelector('#usersTable tbody');
-const tradesBody=document.querySelector('#tradesTable tbody');
+const usersBody = document.querySelector('#usersTable tbody');
+const tradesBody = document.querySelector('#tradesTable tbody');
 
-async function loadUsers(){
-    const res=await fetch('/admin/users');
-    const data=await res.json();
-    usersBody.innerHTML='';
-    data.users.forEach(u=>{
-        const row=document.createElement('tr');
-        row.innerHTML=`
+async function loadUsers() {
+    const res = await fetch('/admin/users');
+    const data = await res.json();
+    usersBody.innerHTML = '';
+    data.users.forEach(u => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
             <td>${u.username}</td>
             <td><input type="number" value="${u.cash.toFixed(2)}" step="0.01" id="cash-${u.id}"></td>
             <td><input type="number" value="${u.btc.toFixed(4)}" step="0.0001" id="btc-${u.id}"></td>
-            <td><button onclick="updateUser(${u.id})">Update</button></td>
+            <td>
+                <button onclick="updateUser(${u.id})">Update</button>
+                <button onclick="resetUser(${u.id})">Reset</button>
+            </td>
         `;
         usersBody.appendChild(row);
     });
 }
 
-async function loadTrades(){
-    const res=await fetch('/admin/trades');
-    const data=await res.json();
-    tradesBody.innerHTML='';
-    data.trades.forEach(t=>{
-        const row=document.createElement('tr');
-        row.innerHTML=`
+async function loadTrades() {
+    const res = await fetch('/admin/trades');
+    const data = await res.json();
+    tradesBody.innerHTML = '';
+    data.trades.forEach(t => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
             <td>${t.username}</td>
             <td>${new Date(t.date).toLocaleString()}</td>
             <td>${t.type}</td>
@@ -82,17 +173,32 @@ async function loadTrades(){
     });
 }
 
-async function updateUser(userId){
-    const cash=parseFloat(document.getElementById(`cash-${userId}`).value);
-    const btc=parseFloat(document.getElementById(`btc-${userId}`).value);
-    await fetch('/admin/update',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({userId,cash,btc})
+async function updateUser(userId) {
+    const cash = parseFloat(document.getElementById(`cash-${userId}`).value);
+    const btc = parseFloat(document.getElementById(`btc-${userId}`).value);
+    await fetch('/admin/update', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ userId, cash, btc })
     });
-    alert('User updated');
+    alert('User updated successfully');
     loadUsers();
 }
+
+async function resetUser(userId) {
+    if(!confirm('Reset this user\'s balances?')) return;
+    await fetch('/admin/update', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ userId, cash: 1000, btc: 0 })
+    });
+    alert('User reset to default balances');
+    loadUsers();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+    window.location.href = "index.html";
+});
 
 loadUsers();
 loadTrades();
