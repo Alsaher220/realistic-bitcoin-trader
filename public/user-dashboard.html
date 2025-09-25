@@ -2,56 +2,221 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>User Dashboard - BTC Trader</title>
+<title>BTC Trader - User Dashboard</title>
 <link rel="stylesheet" href="style.css">
+<style>
+/* --- Basic Reset & Layout --- */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    background: #1c1c1c;
+    color: #f1f1f1;
+}
+
+.container {
+    width: 95%;
+    max-width: 1200px;
+    margin: 20px auto;
+}
+
+/* --- Header / Navbar --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f7931a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: #fff;
+}
+
+header .logo {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+header .logo svg {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+}
+
+header nav a {
+    margin-left: 20px;
+    text-decoration: none;
+    color: #fff;
+    font-weight: bold;
+}
+
+/* --- Panels / Cards --- */
+.card {
+    background: #2c2c2c;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.card h2 {
+    margin-top: 0;
+    color: #f7931a;
+}
+
+input, button {
+    padding: 8px 12px;
+    margin: 5px 0;
+    border-radius: 4px;
+    border: none;
+}
+
+input {
+    width: 150px;
+}
+
+button {
+    background: #f7931a;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+/* --- Tables --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background: #333;
+}
+
+tr:nth-child(even) {
+    background: #2a2a2a;
+}
+
+/* --- Grid Layout for Panels --- */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+/* --- Logout Button --- */
+.logout-btn {
+    background: #ff4c4c;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-weight: bold;
+    float: right;
+    cursor: pointer;
+}
+.logout-btn:hover {
+    opacity: 0.9;
+}
+</style>
 </head>
 <body>
-<div class="container">
-<div class="logo">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-    <circle cx="256" cy="256" r="256" fill="#f7931a"/>
-    <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
-  </svg>
-  BTC Trader
-</div>
 
-<h1>User Dashboard</h1>
-<div id="portfolio">
+<div class="container">
+<header>
+    <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+          <circle cx="256" cy="256" r="256" fill="#f7931a"/>
+          <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
+        </svg>
+        BTC Trader
+    </div>
+    <nav>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#invest">Invest</a>
+        <a href="#history">History</a>
+        <a href="#referrals">Referrals</a>
+        <a href="#settings">Settings</a>
+    </nav>
+</header>
+
+<!-- Dashboard Overview -->
+<div class="card" id="dashboard">
+    <h2>Dashboard Overview</h2>
     <p>Username: <span id="username"></span></p>
     <p>Cash: $<span id="cash"></span></p>
     <p>BTC: <span id="btc"></span></p>
+    <p>Total Portfolio Value: $<span id="totalValue"></span></p>
 </div>
 
-<div id="trade">
-    <h2>Trade BTC</h2>
-    <input type="number" id="amount" placeholder="Amount of BTC" step="0.0001">
-    <input type="number" id="price" placeholder="Price per BTC" step="0.01">
-    <button id="buyBtn">Buy</button>
-    <button id="sellBtn">Sell</button>
+<!-- Make Investment -->
+<div class="card grid" id="invest">
+    <div>
+        <h2>Make Investment</h2>
+        <input type="number" id="amount" placeholder="Amount BTC" step="0.0001">
+        <input type="number" id="price" placeholder="Price per BTC" step="0.01">
+        <br>
+        <button id="buyBtn">Buy</button>
+        <button id="sellBtn">Sell</button>
+    </div>
+    <div>
+        <h2>Investment Status</h2>
+        <p>Active Investment: $<span id="activeInvestment">0.00</span></p>
+        <button id="withdrawBtn">Withdraw</button>
+    </div>
 </div>
 
-<h2>Trade History</h2>
-<table id="tradeHistory">
-    <thead>
-        <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Price</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
+<!-- History -->
+<div class="card" id="history">
+    <h2>Trade / Investment History</h2>
+    <table id="tradeHistory">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<!-- Referrals -->
+<div class="card" id="referrals">
+    <h2>Referrals</h2>
+    <p>Your Referral Code: <span id="referralCode">BTC123</span></p>
+    <p>Earnings from Referrals: $<span id="referralEarnings">0.00</span></p>
+</div>
+
+<!-- Settings / Security -->
+<div class="card" id="settings">
+    <h2>Settings & Security</h2>
+    <input type="password" id="newPassword" placeholder="New Password">
+    <button id="changePasswordBtn">Change Password</button>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+</div>
+
 </div>
 
 <script>
 const urlParams = new URLSearchParams(window.location.search);
 const userId = urlParams.get('userId');
+
 const usernameEl = document.getElementById('username');
 const cashEl = document.getElementById('cash');
 const btcEl = document.getElementById('btc');
+const totalValueEl = document.getElementById('totalValue');
 const tradeBody = document.querySelector('#tradeHistory tbody');
+const activeInvestmentEl = document.getElementById('activeInvestment');
 
+// Load user info and trade history
 async function loadUser(){
     const res = await fetch(`/user/${userId}`);
     const data = await res.json();
@@ -59,6 +224,9 @@ async function loadUser(){
     usernameEl.textContent = data.user.username;
     cashEl.textContent = data.user.cash.toFixed(2);
     btcEl.textContent = data.user.btc.toFixed(4);
+    totalValueEl.textContent = (data.user.cash + data.user.btc*1).toFixed(2); // assume BTC price $1 for now
+    activeInvestmentEl.textContent = (data.user.btc*1).toFixed(2);
+
     tradeBody.innerHTML = '';
     data.trades.forEach(t => {
         const row = document.createElement('tr');
@@ -72,33 +240,40 @@ async function loadUser(){
     });
 }
 
+// Buy BTC
 document.getElementById('buyBtn').addEventListener('click', async ()=>{
-    const amount=parseFloat(document.getElementById('amount').value);
-    const price=parseFloat(document.getElementById('price').value);
-    const res=await fetch('/buy',{
+    const amount = parseFloat(document.getElementById('amount').value);
+    const price = parseFloat(document.getElementById('price').value);
+    const res = await fetch('/buy',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({userId,amount,price})
+        body:JSON.stringify({userId, amount, price})
     });
-    const data=await res.json();
+    const data = await res.json();
     if(!data.success) return alert(data.message);
     loadUser();
 });
 
+// Sell BTC
 document.getElementById('sellBtn').addEventListener('click', async ()=>{
-    const amount=parseFloat(document.getElementById('amount').value);
-    const price=parseFloat(document.getElementById('price').value);
-    const res=await fetch('/sell',{
+    const amount = parseFloat(document.getElementById('amount').value);
+    const price = parseFloat(document.getElementById('price').value);
+    const res = await fetch('/sell',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({userId,amount,price})
+        body:JSON.stringify({userId, amount, price})
     });
-    const data=await res.json();
+    const data = await res.json();
     if(!data.success) return alert(data.message);
     loadUser();
 });
 
-loadUser();
-</script>
-</body>
-</html>
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+    window.location.href = "index.html";
+});
+
+// Placeholder Change Password
+document.getElementById('changePasswordBtn').addEventListener('click', async ()=>{
+    const newPassword = document.getElementById('newPassword').value;
+    if
