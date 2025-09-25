@@ -84,7 +84,7 @@ th {
     gap: 10px;
 }
 
-.logo img, .logo svg {
+.logo svg {
     width: 40px;
     height: 40px;
 }
