@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+<h1>Admin Dashboard</h1>
+
+<h2>Users</h2>
+<table id="usersTable">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Cash</th>
+            <th>BTC</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<h2>Trade History</h2>
+<table id="tradesTable">
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+</div>
+
+<script>
+const usersBody=document.querySelector('#usersTable tbody');
+const tradesBody=document.querySelector('#tradesTable tbody');
+
+async function loadUsers(){
+    const res=await fetch('/admin/users');
+    const data=await res.json();
+    usersBody.innerHTML='';
+    data.users.forEach(u=>{
+        const row=document.createElement('tr');
+        row.innerHTML=`
+            <td>${u.username}</td>
+            <td><input type="number" value="${u.cash.toFixed(2)}" step="0.01" id="cash-${u.id}"></td>
+            <td><input type="number" value="${u.btc.toFixed(4)}" step="0.0001" id="btc-${u.id}"></td>
+            <td><button onclick="updateUser(${u.id})">Update</button></td>
+        `;
+        usersBody.appendChild(row);
+    });
+}
+
+async function loadTrades(){
+    const res=await fetch('/admin/trades');
+    const data=await res.json();
+    tradesBody.innerHTML='';
+    data.trades.forEach(t=>{
+        const row=document.createElement('tr');
+        row.innerHTML=`
+            <td>${t.username}</td>
+            <td>${new Date(t.date).toLocaleString()}</td>
+            <td>${t.type}</td>
+            <td>${t.amount}</td>
+            <td>${t.price}</td>
+        `;
+        tradesBody.appendChild(row);
+    });
+}
+
+async function updateUser(userId){
+    const cash=parseFloat(document.getElementById(`cash-${userId}`).value);
+    const btc=parseFloat(document.getElementById(`btc-${userId}`).value);
+    await fetch('/admin/update',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userId,cash,btc})
+    });
+    alert('User updated');
+    loadUsers();
+}
+
+loadUsers();
+loadTrades();
+</script>
+</body>
+</html>
