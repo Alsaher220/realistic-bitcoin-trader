@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>User Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+<h1>User Dashboard</h1>
+<div id="portfolio">
+    <p>Username: <span id="username"></span></p>
+    <p>Cash: $<span id="cash"></span></p>
+    <p>BTC: <span id="btc"></span></p>
+</div>
+
+<div id="trade">
+    <h2>Trade BTC</h2>
+    <input type="number" id="amount" placeholder="Amount of BTC" step="0.0001">
+    <input type="number" id="price" placeholder="Price per BTC" step="0.01">
+    <button id="buyBtn">Buy</button>
+    <button id="sellBtn">Sell</button>
+</div>
+
+<h2>Trade History</h2>
+<table id="tradeHistory">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('userId');
+const usernameEl = document.getElementById('username');
+const cashEl = document.getElementById('cash');
+const btcEl = document.getElementById('btc');
+const tradeBody = document.querySelector('#tradeHistory tbody');
+
+async function loadUser(){
+    const res = await fetch(`/user/${userId}`);
+    const data = await res.json();
+    if(!data.success) return alert('Error loading user');
+    usernameEl.textContent = data.user.username;
+    cashEl.textContent = data.user.cash.toFixed(2);
+    btcEl.textContent = data.user.btc.toFixed(4);
+    tradeBody.innerHTML = '';
+    data.trades.forEach(t => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${new Date(t.date).toLocaleString()}</td>
+            <td>${t.type}</td>
+            <td>${t.amount}</td>
+            <td>${t.price}</td>
+        `;
+        tradeBody.appendChild(row);
+    });
+}
+
+document.getElementById('buyBtn').addEventListener('click', async ()=>{
+    const amount=parseFloat(document.getElementById('amount').value);
+    const price=parseFloat(document.getElementById('price').value);
+    const res=await fetch('/buy',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userId,amount,price})
+    });
+    const data=await res.json();
+    if(!data.success) return alert(data.message);
+    loadUser();
+});
+
+document.getElementById('sellBtn').addEventListener('click', async ()=>{
+    const amount=parseFloat(document.getElementById('amount').value);
+    const price=parseFloat(document.getElementById('price').value);
+    const res=await fetch('/sell',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userId,amount,price})
+    });
+    const data=await res.json();
+    if(!data.success) return alert(data.message);
+    loadUser();
+});
+
+loadUser();
+</script>
+</body>
+</html>
