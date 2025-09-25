@@ -1,130 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>BTC Trader - Dashboard</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>BTC Trader - Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
+      color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f7931a;
+      padding: 15px 30px;
+      color: white;
+    }
+    header .logo {
+      display: flex;
+      align-items: center;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    header .logo svg {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+    }
+    .container {
+      padding: 20px;
+    }
+    h2 {
+      border-bottom: 2px solid #f7931a;
+      padding-bottom: 5px;
+      margin-top: 30px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: #262626;
+      color: #fff;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #f7931a;
+      color: #000;
+    }
+    input {
+      width: 80px;
+      padding: 5px;
+      margin: 2px;
+    }
+    button {
+      padding: 5px 10px;
+      background: #f7931a;
+      color: black;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #ffa733;
+    }
+    .logout {
+      background: #d9534f;
+      color: #fff;
+    }
+    .logout:hover {
+      background: #c9302c;
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-<header>
-  <div class="logo">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-      <circle cx="256" cy="256" r="256" fill="#f7931a"/>
-      <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
-    </svg>
-    BTC Trader
+  <header>
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <circle cx="256" cy="256" r="256" fill="#fff"/>
+        <path fill="#f7931a" d="M370 222c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49z"/>
+      </svg>
+      BTC Trader - Admin
+    </div>
+    <button class="logout" onclick="logout()">Logout</button>
+  </header>
+
+  <div class="container">
+    <h2>Users</h2>
+    <table id="usersTable">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Cash</th>
+          <th>BTC</th>
+          <th>Top Up</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Trade History</h2>
+    <table id="historyTable">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
-  <nav>
-    <a href="#dashboard">Dashboard</a>
-    <a href="#invest">Invest</a>
-    <a href="#history">History</a>
-    <a href="#referrals">Referrals</a>
-    <a href="#settings">Settings</a>
-    <button class="logout-btn" id="logoutBtn">Logout</button>
-  </nav>
-</header>
 
-<div class="card" id="dashboard">
-  <h2>Portfolio Overview</h2>
-  <p>Username: <span id="username"></span></p>
-  <p>Cash: $<span id="cash"></span></p>
-  <p>BTC: <span id="btc"></span></p>
-  <p>Total Value: $<span id="totalValue"></span></p>
-</div>
+  <script>
+    async function loadUsers() {
+      const res = await fetch('/admin/users');
+      const data = await res.json();
+      if (!data.success) return alert("Error loading users");
 
-<div class="card" id="invest">
-  <h2>Make Investment</h2>
-  <input type="number" id="amount" placeholder="BTC Amount" step="0.0001">
-  <input type="number" id="price" placeholder="Price per BTC" step="0.01">
-  <br>
-  <button id="buyBtn">Buy</button>
-  <button id="sellBtn">Sell</button>
-</div>
+      const tbody = document.querySelector("#usersTable tbody");
+      tbody.innerHTML = "";
+      data.users.forEach(u => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${u.username}</td>
+          <td>$${u.cash}</td>
+          <td>${u.btc} BTC</td>
+          <td>
+            <input type="number" id="cash-${u.id}" placeholder="Cash">
+            <input type="number" id="btc-${u.id}" placeholder="BTC">
+            <button onclick="topUp(${u.id})">Top Up</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
-<div class="card" id="history">
-  <h2>Trade History</h2>
-  <table id="tradeHistory">
-    <thead>
-      <tr><th>Date</th><th>Type</th><th>Amount</th><th>Price</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+    async function loadHistory() {
+      const res = await fetch('/admin/trades');
+      const data = await res.json();
+      if (!data.success) return;
 
-<div class="card" id="referrals">
-  <h2>Referrals</h2>
-  <p>Your Code: <span id="referralCode">BTC123</span></p>
-  <p>Earnings: $<span id="referralEarnings">0.00</span></p>
-</div>
+      const tbody = document.querySelector("#historyTable tbody");
+      tbody.innerHTML = "";
+      data.trades.forEach(t => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${t.username}</td>
+          <td>${new Date(t.date).toLocaleString()}</td>
+          <td>${t.type}</td>
+          <td>${t.amount}</td>
+          <td>${t.price}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
-<div class="card" id="settings">
-  <h2>Settings & Security</h2>
-  <input type="password" id="newPassword" placeholder="New Password">
-  <button id="changePasswordBtn">Change Password</button>
-</div>
+    async function topUp(userId) {
+      const cash = parseFloat(document.getElementById(`cash-${userId}`).value) || 0;
+      const btc = parseFloat(document.getElementById(`btc-${userId}`).value) || 0;
 
-</div>
+      const res = await fetch('/admin/topup', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, cash, btc })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Top up successful!");
+        loadUsers();
+      } else {
+        alert("Error topping up user");
+      }
+    }
 
-<script>
-const urlParams = new URLSearchParams(window.location.search);
-const userId = urlParams.get('userId');
+    function logout() {
+      window.location.href = "index.html";
+    }
 
-const usernameEl = document.getElementById('username');
-const cashEl = document.getElementById('cash');
-const btcEl = document.getElementById('btc');
-const totalValueEl = document.getElementById('totalValue');
-const tradeBody = document.querySelector('#tradeHistory tbody');
-
-async function loadUser(){
-  const res = await fetch(`/user/${userId}`);
-  const data = await res.json();
-  if(!data.success) return alert('Error loading user');
-
-  usernameEl.textContent = data.user.username;
-  cashEl.textContent = data.user.cash.toFixed(2);
-  btcEl.textContent = data.user.btc.toFixed(4);
-  totalValueEl.textContent = (data.user.cash + data.user.btc*1).toFixed(2);
-
-  tradeBody.innerHTML = '';
-  data.trades.forEach(t=>{
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${new Date(t.date).toLocaleString()}</td><td>${t.type}</td><td>${t.amount}</td><td>${t.price}</td>`;
-    tradeBody.appendChild(row);
-  });
-}
-
-document.getElementById('buyBtn').addEventListener('click', async ()=>{
-  const amount = parseFloat(document.getElementById('amount').value);
-  const price = parseFloat(document.getElementById('price').value);
-  const res = await fetch('/buy',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId, amount, price}) });
-  const data = await res.json();
-  if(!data.success) return alert(data.message);
-  loadUser();
-});
-
-document.getElementById('sellBtn').addEventListener('click', async ()=>{
-  const amount = parseFloat(document.getElementById('amount').value);
-  const price = parseFloat(document.getElementById('price').value);
-  const res = await fetch('/sell',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId, amount, price}) });
-  const data = await res.json();
-  if(!data.success) return alert(data.message);
-  loadUser();
-});
-
-document.getElementById('logoutBtn').addEventListener('click', ()=>{
-  window.location.href="index.html";
-});
-
-document.getElementById('changePasswordBtn').addEventListener('click', async ()=>{
-  const newPassword = document.getElementById('newPassword').value;
-  if(!newPassword) return alert('Enter new password');
-  const res = await fetch('/change-password',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId,newPassword}) });
-  const data = await res.json();
-  alert(data.message);
-});
-
-loadUser();
-</script>
+    loadUsers();
+    loadHistory();
+  </script>
 </body>
 </html>
