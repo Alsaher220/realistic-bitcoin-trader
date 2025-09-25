@@ -1,0 +1,49 @@
+<h1>Admin Dashboard</h1>
+<h2>Pending Withdrawals</h2>
+<table border="1" id="adminWithdrawalsTable">
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Amount</th>
+      <th>Wallet</th>
+      <th>Status</th>
+      <th>Date</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+async function loadAdminWithdrawals() {
+  const res = await fetch('/admin/withdrawals?status=pending');
+  const data = await res.json();
+  const tbody = document.querySelector('#adminWithdrawalsTable tbody');
+  tbody.innerHTML = '';
+  data.withdrawals.forEach(w => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${w.username}</td>
+      <td>${w.amount}</td>
+      <td>${w.wallet}</td>
+      <td>${w.status}</td>
+      <td>${new Date(w.date).toLocaleString()}</td>
+      <td><button onclick="process(${w.id})">Mark Processed</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+async function process(id) {
+  const res = await fetch('/admin/withdrawals/process', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({id})
+  });
+  const data = await res.json();
+  alert(data.message);
+  loadAdminWithdrawals();
+}
+
+loadAdminWithdrawals();
+</script>
