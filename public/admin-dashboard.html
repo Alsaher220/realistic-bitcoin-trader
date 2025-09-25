@@ -2,100 +2,56 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BTC Trader - Admin Dashboard</title>
+<title>BTC Trader - Admin</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
+<h1>Admin Dashboard</h1>
 
-<header>
-    <div class="logo">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-          <circle cx="256" cy="256" r="256" fill="#f7931a"/>
-          <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
-        </svg>
-        BTC Trader Admin
-    </div>
-    <nav>
-        <a href="#users">Users</a>
-        <a href="#trades">Trade History</a>
-        <a href="#settings">Settings</a>
-    </nav>
-</header>
+<h2>Users</h2>
+<table id="usersTable">
+  <thead>
+    <tr><th>Username</th><th>Cash</th><th>BTC</th><th>Actions</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-<!-- Users Management -->
-<div class="card" id="users">
-    <h2>Manage Users</h2>
-    <table id="usersTable">
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Cash</th>
-                <th>BTC</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-<!-- Trade History -->
-<div class="card" id="trades">
-    <h2>All Users Trade History</h2>
-    <table id="tradesTable">
-        <thead>
-            <tr>
-                <th>User</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Price</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-<!-- Admin Settings -->
-<div class="card" id="settings">
-    <h2>Settings & Logout</h2>
-    <button class="logout-btn" id="logoutBtn">Logout</button>
-</div>
-
-</div>
+<h2>Trade History</h2>
+<table id="tradesTable">
+  <thead>
+    <tr><th>User</th><th>Date</th><th>Type</th><th>Amount</th><th>Price</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
 <script>
-const usersBody = document.querySelector('#usersTable tbody');
-const tradesBody = document.querySelector('#tradesTable tbody');
+const usersBody=document.querySelector('#usersTable tbody');
+const tradesBody=document.querySelector('#tradesTable tbody');
 
-// Load all users
 async function loadUsers(){
-    const res = await fetch('/admin/users');
-    const data = await res.json();
-    usersBody.innerHTML = '';
-    data.users.forEach(u => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
+    const res=await fetch('/admin/users');
+    const data=await res.json();
+    usersBody.innerHTML='';
+    data.users.forEach(u=>{
+        const row=document.createElement('tr');
+        row.innerHTML=`
             <td>${u.username}</td>
             <td><input type="number" value="${u.cash.toFixed(2)}" step="0.01" id="cash-${u.id}"></td>
             <td><input type="number" value="${u.btc.toFixed(4)}" step="0.0001" id="btc-${u.id}"></td>
-            <td>
-                <button onclick="updateUser(${u.id})">Update</button>
-                <button onclick="resetUser(${u.id})">Reset</button>
-            </td>
+            <td><button onclick="updateUser(${u.id})">Update</button></td>
         `;
         usersBody.appendChild(row);
     });
 }
 
-// Load all trades
 async function loadTrades(){
-    const res = await fetch('/admin/trades');
-    const data = await res.json();
-    tradesBody.innerHTML = '';
-    data.trades.forEach(t => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
+    const res=await fetch('/admin/trades');
+    const data=await res.json();
+    tradesBody.innerHTML='';
+    data.trades.forEach(t=>{
+        const row=document.createElement('tr');
+        row.innerHTML=`
             <td>${t.username}</td>
             <td>${new Date(t.date).toLocaleString()}</td>
             <td>${t.type}</td>
@@ -106,38 +62,21 @@ async function loadTrades(){
     });
 }
 
-// Update user balances
 async function updateUser(userId){
-    const cash = parseFloat(document.getElementById(`cash-${userId}`).value);
-    const btc = parseFloat(document.getElementById(`btc-${userId}`).value);
+    const cash=parseFloat(document.getElementById(`cash-${userId}`).value);
+    const btc=parseFloat(document.getElementById(`btc-${userId}`).value);
     await fetch('/admin/update',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({userId, cash, btc})
+        body:JSON.stringify({userId,cash,btc})
     });
-    alert('User updated successfully');
+    alert('User updated');
     loadUsers();
 }
-
-// Reset user balances
-async function resetUser(userId){
-    if(!confirm('Reset this user\'s balances to 0?')) return;
-    await fetch('/admin/update',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({userId, cash:0, btc:0})
-    });
-    alert('User balances reset');
-    loadUsers();
-}
-
-// Logout
-document.getElementById('logoutBtn').addEventListener('click', ()=>{
-    window.location.href = "index.html";
-});
 
 loadUsers();
 loadTrades();
 </script>
+</div>
 </body>
 </html>
