@@ -2,189 +2,49 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BTC Trader - User Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
-      color: #f0f0f0;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f7931a;
-      padding: 15px 30px;
-      color: black;
-      font-weight: bold;
-    }
-    .container {
-      padding: 20px;
-    }
-    h2 {
-      border-bottom: 2px solid #f7931a;
-      padding-bottom: 5px;
-      margin-top: 30px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      background: #262626;
-    }
-    th, td {
-      border: 1px solid #444;
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background: #f7931a;
-      color: black;
-    }
-    input, select {
-      padding: 5px;
-      margin: 5px;
-      border-radius: 4px;
-      border: none;
-    }
-    button {
-      padding: 8px 12px;
-      background: #f7931a;
-      color: black;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #ffa733;
-    }
-    .logout {
-      background: #d9534f;
-      color: white;
-    }
-    .logout:hover {
-      background: #c9302c;
-    }
-  </style>
+  <title>User Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div>BTC Trader - User Dashboard</div>
-    <button class="logout" onclick="logout()">Logout</button>
-  </header>
+  <h1>Welcome, <span id="username"></span></h1>
 
-  <div class="container">
-    <h2>Account Info</h2>
-    <p><strong>Username:</strong> <span id="username"></span></p>
-    <p><strong>Cash:</strong> $<span id="cash"></span></p>
-    <p><strong>BTC:</strong> <span id="btc"></span></p>
+  <h2>Account</h2>
+  <p>Cash: $<span id="cash"></span></p>
+  <p>BTC: <span id="btc"></span> BTC</p>
 
-    <h2>Buy / Sell BTC</h2>
-    <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01">
-    <input type="number" id="price" placeholder="Price (USD)" step="0.01">
-    <button onclick="buyBTC()">Buy</button>
-    <button onclick="sellBTC()">Sell</button>
+  <h2>Buy/Sell BTC</h2>
+  <form id="buyForm">
+    <input type="number" id="buyAmount" placeholder="Amount BTC">
+    <input type="number" id="buyPrice" placeholder="Price per BTC">
+    <button type="submit">Buy BTC</button>
+  </form>
 
-    <h2>Withdraw Funds</h2>
-    <input type="number" id="withdrawAmount" placeholder="Amount (USD)">
-    <input type="text" id="walletAddress" placeholder="Wallet Address">
-    <button onclick="withdraw()">Withdraw</button>
+  <form id="sellForm">
+    <input type="number" id="sellAmount" placeholder="Amount BTC">
+    <input type="number" id="sellPrice" placeholder="Price per BTC">
+    <button type="submit">Sell BTC</button>
+  </form>
 
-    <h2>Trade History</h2>
-    <table id="historyTable">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Type</th>
-          <th>Amount</th>
-          <th>Price</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <h2>Withdraw Funds</h2>
+  <form id="withdrawForm">
+    <input type="number" id="withdrawAmount" placeholder="Amount">
+    <input type="text" id="withdrawWallet" placeholder="Wallet Address">
+    <button type="submit">Request Withdrawal</button>
+  </form>
 
-  <script>
-    let user = JSON.parse(localStorage.getItem("user"));
+  <h2>Withdrawal History</h2>
+  <table border="1" id="withdrawalsTable">
+    <thead>
+      <tr>
+        <th>Amount</th>
+        <th>Wallet</th>
+        <th>Status</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-    async function loadUser() {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-      const res = await fetch(`/user/${user.id}`);
-      const data = await res.json();
-      if (data.success) {
-        user = data.user;
-        document.getElementById("username").textContent = user.username;
-        document.getElementById("cash").textContent = user.cash;
-        document.getElementById("btc").textContent = user.btc;
-
-        const tbody = document.querySelector("#historyTable tbody");
-        tbody.innerHTML = "";
-        data.trades.forEach(t => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${new Date(t.date).toLocaleString()}</td>
-            <td>${t.type}</td>
-            <td>${t.amount}</td>
-            <td>${t.price}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    }
-
-    async function buyBTC() {
-      const amount = parseFloat(document.getElementById("amount").value);
-      const price = parseFloat(document.getElementById("price").value);
-
-      const res = await fetch("/buy", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ userId: user.id, amount, price })
-      });
-      const data = await res.json();
-      alert(data.success ? "Buy successful!" : data.message);
-      loadUser();
-    }
-
-    async function sellBTC() {
-      const amount = parseFloat(document.getElementById("amount").value);
-      const price = parseFloat(document.getElementById("price").value);
-
-      const res = await fetch("/sell", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ userId: user.id, amount, price })
-      });
-      const data = await res.json();
-      alert(data.success ? "Sell successful!" : data.message);
-      loadUser();
-    }
-
-    async function withdraw() {
-      const amount = parseFloat(document.getElementById("withdrawAmount").value);
-      const wallet = document.getElementById("walletAddress").value;
-
-      const res = await fetch("/withdraw", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ userId: user.id, amount, wallet })
-      });
-      const data = await res.json();
-      alert(data.success ? "Withdrawal request submitted!" : data.message);
-      loadUser();
-    }
-
-    function logout() {
-      localStorage.removeItem("user");
-      window.location.href = "index.html";
-    }
-
-    loadUser();
-  </script>
+  <script src="dashboard.js"></script>
 </body>
 </html>
