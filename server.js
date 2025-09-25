@@ -19,6 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 🔹 Ensure tables exist + create admin
 (async () => {
+  // Users table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, 'public')));
     )
   `);
 
+  // Trades table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS trades (
       id SERIAL PRIMARY KEY,
@@ -41,6 +43,7 @@ app.use(express.static(path.join(__dirname, 'public')));
     )
   `);
 
+  // Withdrawals table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS withdrawals (
       id SERIAL PRIMARY KEY,
@@ -111,7 +114,7 @@ app.post('/buy', async (req, res) => {
 
   await pool.query(`UPDATE users SET cash=cash-$1, btc=btc+$2 WHERE id=$3`, [total, amount, userId]);
   await pool.query(`INSERT INTO trades (user_id, type, amount, price) VALUES ($1,'BUY',$2,$3)`, [userId, amount, price]);
-  res.json({ success: true });
+  res.json({ success: true, message: 'BTC purchased!' });
 });
 
 // Sell BTC
@@ -124,12 +127,12 @@ app.post('/sell', async (req, res) => {
 
   await pool.query(`UPDATE users SET cash=cash+($1*$2), btc=btc-$2 WHERE id=$3`, [price, amount, userId]);
   await pool.query(`INSERT INTO trades (user_id, type, amount, price) VALUES ($1,'SELL',$2,$3)`, [userId, amount, price]);
-  res.json({ success: true });
+  res.json({ success: true, message: 'BTC sold!' });
 });
 
 // ================= WITHDRAWAL SYSTEM =================
 
-// User requests withdrawal with safety checks
+// User requests withdrawal
 app.post('/withdraw', async (req, res) => {
   const { userId, amount, wallet } = req.body;
   try {
@@ -204,9 +207,9 @@ app.post('/admin/topup', async (req, res) => {
   }
 });
 
-// Admin view all withdrawals with optional status filter
+// Admin view all withdrawals (optional status filter)
 app.get('/admin/withdrawals', async (req, res) => {
-  const { status } = req.query; // e.g., ?status=pending
+  const { status } = req.query;
   try {
     let query = `SELECT withdrawals.*, users.username
                  FROM withdrawals
