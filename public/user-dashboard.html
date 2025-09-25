@@ -2,34 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BTC Trader - Admin Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <title>BTC Trader - User Dashboard</title>
   <style>
     body {
+      font-family: Arial, sans-serif;
       background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
       color: #f0f0f0;
-      font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
     }
     header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       background: #f7931a;
       padding: 15px 30px;
-      color: white;
-    }
-    header .logo {
-      display: flex;
-      align-items: center;
-      font-size: 22px;
+      color: black;
       font-weight: bold;
-    }
-    header .logo svg {
-      width: 40px;
-      height: 40px;
-      margin-right: 10px;
     }
     .container {
       padding: 20px;
@@ -44,7 +33,6 @@
       border-collapse: collapse;
       margin-top: 15px;
       background: #262626;
-      color: #fff;
     }
     th, td {
       border: 1px solid #444;
@@ -53,27 +41,28 @@
     }
     th {
       background: #f7931a;
-      color: #000;
+      color: black;
     }
-    input {
-      width: 80px;
+    input, select {
       padding: 5px;
-      margin: 2px;
+      margin: 5px;
+      border-radius: 4px;
+      border: none;
     }
     button {
-      padding: 5px 10px;
+      padding: 8px 12px;
       background: #f7931a;
       color: black;
       border: none;
-      cursor: pointer;
       border-radius: 4px;
+      cursor: pointer;
     }
     button:hover {
       background: #ffa733;
     }
     .logout {
       background: #d9534f;
-      color: #fff;
+      color: white;
     }
     .logout:hover {
       background: #c9302c;
@@ -82,35 +71,31 @@
 </head>
 <body>
   <header>
-    <div class="logo">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-        <circle cx="256" cy="256" r="256" fill="#fff"/>
-        <path fill="#f7931a" d="M370 222c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49z"/>
-      </svg>
-      BTC Trader - Admin
-    </div>
+    <div>BTC Trader - User Dashboard</div>
     <button class="logout" onclick="logout()">Logout</button>
   </header>
 
   <div class="container">
-    <h2>Users</h2>
-    <table id="usersTable">
-      <thead>
-        <tr>
-          <th>Username</th>
-          <th>Cash</th>
-          <th>BTC</th>
-          <th>Top Up</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <h2>Account Info</h2>
+    <p><strong>Username:</strong> <span id="username"></span></p>
+    <p><strong>Cash:</strong> $<span id="cash"></span></p>
+    <p><strong>BTC:</strong> <span id="btc"></span></p>
+
+    <h2>Buy / Sell BTC</h2>
+    <input type="number" id="amount" placeholder="Amount (BTC)" step="0.01">
+    <input type="number" id="price" placeholder="Price (USD)" step="0.01">
+    <button onclick="buyBTC()">Buy</button>
+    <button onclick="sellBTC()">Sell</button>
+
+    <h2>Withdraw Funds</h2>
+    <input type="number" id="withdrawAmount" placeholder="Amount (USD)">
+    <input type="text" id="walletAddress" placeholder="Wallet Address">
+    <button onclick="withdraw()">Withdraw</button>
 
     <h2>Trade History</h2>
     <table id="historyTable">
       <thead>
         <tr>
-          <th>User</th>
           <th>Date</th>
           <th>Type</th>
           <th>Amount</th>
@@ -122,73 +107,84 @@
   </div>
 
   <script>
-    async function loadUsers() {
-      const res = await fetch('/admin/users');
-      const data = await res.json();
-      if (!data.success) return alert("Error loading users");
+    let user = JSON.parse(localStorage.getItem("user"));
 
-      const tbody = document.querySelector("#usersTable tbody");
-      tbody.innerHTML = "";
-      data.users.forEach(u => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${u.username}</td>
-          <td>$${u.cash}</td>
-          <td>${u.btc} BTC</td>
-          <td>
-            <input type="number" id="cash-${u.id}" placeholder="Cash">
-            <input type="number" id="btc-${u.id}" placeholder="BTC">
-            <button onclick="topUp(${u.id})">Top Up</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function loadHistory() {
-      const res = await fetch('/admin/trades');
-      const data = await res.json();
-      if (!data.success) return;
-
-      const tbody = document.querySelector("#historyTable tbody");
-      tbody.innerHTML = "";
-      data.trades.forEach(t => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${t.username}</td>
-          <td>${new Date(t.date).toLocaleString()}</td>
-          <td>${t.type}</td>
-          <td>${t.amount}</td>
-          <td>${t.price}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function topUp(userId) {
-      const cash = parseFloat(document.getElementById(`cash-${userId}`).value) || 0;
-      const btc = parseFloat(document.getElementById(`btc-${userId}`).value) || 0;
-
-      const res = await fetch('/admin/topup', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId, cash, btc })
-      });
+    async function loadUser() {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      const res = await fetch(`/user/${user.id}`);
       const data = await res.json();
       if (data.success) {
-        alert("Top up successful!");
-        loadUsers();
-      } else {
-        alert("Error topping up user");
+        user = data.user;
+        document.getElementById("username").textContent = user.username;
+        document.getElementById("cash").textContent = user.cash;
+        document.getElementById("btc").textContent = user.btc;
+
+        const tbody = document.querySelector("#historyTable tbody");
+        tbody.innerHTML = "";
+        data.trades.forEach(t => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${new Date(t.date).toLocaleString()}</td>
+            <td>${t.type}</td>
+            <td>${t.amount}</td>
+            <td>${t.price}</td>
+          `;
+          tbody.appendChild(tr);
+        });
       }
     }
 
+    async function buyBTC() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      const price = parseFloat(document.getElementById("price").value);
+
+      const res = await fetch("/buy", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ userId: user.id, amount, price })
+      });
+      const data = await res.json();
+      alert(data.success ? "Buy successful!" : data.message);
+      loadUser();
+    }
+
+    async function sellBTC() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      const price = parseFloat(document.getElementById("price").value);
+
+      const res = await fetch("/sell", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ userId: user.id, amount, price })
+      });
+      const data = await res.json();
+      alert(data.success ? "Sell successful!" : data.message);
+      loadUser();
+    }
+
+    async function withdraw() {
+      const amount = parseFloat(document.getElementById("withdrawAmount").value);
+      const wallet = document.getElementById("walletAddress").value;
+
+      const res = await fetch("/withdraw", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ userId: user.id, amount, wallet })
+      });
+      const data = await res.json();
+      alert(data.success ? "Withdrawal request submitted!" : data.message);
+      loadUser();
+    }
+
     function logout() {
+      localStorage.removeItem("user");
       window.location.href = "index.html";
     }
 
-    loadUsers();
-    loadHistory();
+    loadUser();
   </script>
 </body>
 </html>
