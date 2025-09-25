@@ -204,15 +204,23 @@ app.post('/admin/topup', async (req, res) => {
   }
 });
 
-// Admin view all withdrawals
+// Admin view all withdrawals with optional status filter
 app.get('/admin/withdrawals', async (req, res) => {
+  const { status } = req.query; // e.g., ?status=pending
   try {
-    const result = await pool.query(`
-      SELECT withdrawals.*, users.username
-      FROM withdrawals
-      JOIN users ON withdrawals.user_id = users.id
-      ORDER BY withdrawals.date DESC
-    `);
+    let query = `SELECT withdrawals.*, users.username
+                 FROM withdrawals
+                 JOIN users ON withdrawals.user_id = users.id`;
+    let params = [];
+
+    if (status) {
+      query += ` WHERE withdrawals.status=$1`;
+      params.push(status);
+    }
+
+    query += ` ORDER BY withdrawals.date DESC`;
+
+    const result = await pool.query(query, params);
     res.json({ success: true, withdrawals: result.rows });
   } catch (err) {
     console.error(err);
