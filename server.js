@@ -1,148 +1,153 @@
+// server.js (Postgres version)
 const express = require('express');
 const bodyParser = require('body-parser');
-const bcrypt = require('bcrypt');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
 
 const app = express();
-const db = new sqlite3.Database('./db.sqlite');
 const PORT = process.env.PORT || 3000;
 
+// PostgreSQL connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
 // Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ------------------- Initialize DB -------------------
-db.serialize(() => {
-    // Users table
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        cash REAL DEFAULT 1000,
-        btc REAL DEFAULT 0
-    )`);
+// --- Initialize Tables ---
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      cash NUMERIC DEFAULT 1000,
+      btc NUMERIC DEFAULT 0
+    );
+  `);
 
-    // Trades table
-    db.run(`CREATE TABLE IF NOT EXISTS trades (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        type TEXT,
-        amount REAL,
-        price REAL,
-        date TEXT,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS trades (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT,
+      amount NUMERIC,
+      price NUMERIC,
+      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 
-    // Admin account
-    const adminPassword = 'Rayyanalsah227@';
-    const hashedAdmin = bcrypt.hashSync(adminPassword, 10);
-    db.get(`SELECT * FROM users WHERE username = ?`, ['admin'], (err, row) => {
-        if (!row) {
-            db.run(`INSERT INTO users (username, password, cash, btc) VALUES (?, ?, 0, 0)`,
-                ['admin', hashedAdmin]);
-        }
-    });
-});
+  // Ensure admin exists
+  const adminPass = await bcrypt.hash("Rayyanalsah227@", 10);
+  await pool.query(
+    `INSERT INTO users (username, password, cash, btc)
+     VALUES ($1, $2, 0, 0)
+     ON CONFLICT (username) DO NOTHING`,
+    ['admin', adminPass]
+  );
+}
+initDB();
 
-// ------------------- Routes -------------------
+// --- Routes ---
 
 // Register
-app.post('/register', (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.json({ success: false, message: 'Enter username and password' });
+app.post('/register', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.json({ success: false, message: "Missing fields" });
 
-    const hashed = bcrypt.hashSync(password, 10);
-    db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [username, hashed], function(err){
-        if (err) return res.json({ success: false, message: 'Username already taken' });
-        res.json({ success: true, message: 'Account created successfully!' });
-    });
+  const hashed = await bcrypt.hash(password, 10);
+  try {
+    await pool.query(
+      `INSERT INTO users (username, password) VALUES ($1, $2)`,
+      [username, hashed]
+    );
+    res.json({ success: true, message: "Account created!" });
+  } catch (e) {
+    res.json({ success: false, message: "Username already exists" });
+  }
 });
 
 // Login
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    db.get(`SELECT * FROM users WHERE username = ?`, [username], (err, user) => {
-        if (!user) return res.json({ success: false, message: 'User not found' });
-        if (!bcrypt.compareSync(password, user.password)) return res.json({ success: false, message: 'Incorrect password' });
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const result = await pool.query(`SELECT * FROM users WHERE username=$1`, [username]);
+  if (result.rows.length === 0) return res.json({ success: false, message: "User not found" });
 
-        if (username === 'admin') return res.json({ success: true, admin: true });
-        return res.json({ success: true, admin: false, userId: user.id });
-    });
+  const user = result.rows[0];
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return res.json({ success: false, message: "Invalid password" });
+
+  if (username === "admin") {
+    res.json({ success: true, isAdmin: true });
+  } else {
+    res.json({ success: true, userId: user.id });
+  }
 });
 
-// Get user info
-app.get('/user/:id', (req, res) => {
-    const userId = req.params.id;
-    db.get(`SELECT id, username, cash, btc FROM users WHERE id = ?`, [userId], (err, user) => {
-        if (!user) return res.json({ success: false });
-        db.all(`SELECT * FROM trades WHERE user_id = ? ORDER BY date DESC`, [userId], (err, trades) => {
-            return res.json({ success: true, user, trades });
-        });
-    });
+// Get user info + trades
+app.get('/user/:id', async (req, res) => {
+  const { id } = req.params;
+  const userRes = await pool.query(`SELECT id, username, cash, btc FROM users WHERE id=$1`, [id]);
+  if (userRes.rows.length === 0) return res.json({ success: false });
+
+  const tradesRes = await pool.query(`SELECT * FROM trades WHERE user_id=$1 ORDER BY date DESC`, [id]);
+  res.json({ success: true, user: userRes.rows[0], trades: tradesRes.rows });
 });
 
-// Buy BTC
-app.post('/buy', (req, res) => {
-    const { userId, amount, price } = req.body;
-    const totalCost = parseFloat(amount) * parseFloat(price);
+// Buy
+app.post('/buy', async (req, res) => {
+  const { userId, amount, price } = req.body;
+  const cost = amount * price;
 
-    db.get(`SELECT cash, btc FROM users WHERE id = ?`, [userId], (err, user) => {
-        if (user.cash < totalCost) return res.json({ success: false, message: 'Insufficient cash' });
+  const userRes = await pool.query(`SELECT * FROM users WHERE id=$1`, [userId]);
+  const user = userRes.rows[0];
+  if (!user || user.cash < cost) return res.json({ success: false, message: "Insufficient cash" });
 
-        const newCash = user.cash - totalCost;
-        const newBTC = user.btc + parseFloat(amount);
-        db.run(`UPDATE users SET cash = ?, btc = ? WHERE id = ?`, [newCash, newBTC, userId], () => {
-            const date = new Date().toISOString();
-            db.run(`INSERT INTO trades (user_id, type, amount, price, date) VALUES (?, 'BUY', ?, ?, ?)`,
-                [userId, amount, price, date], () => res.json({ success: true, cash: newCash, btc: newBTC }));
-        });
-    });
+  await pool.query(`UPDATE users SET cash=cash-$1, btc=btc+$2 WHERE id=$3`, [cost, amount, userId]);
+  await pool.query(`INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)`, [userId, "BUY", amount, price]);
+
+  res.json({ success: true });
 });
 
-// Sell BTC
-app.post('/sell', (req, res) => {
-    const { userId, amount, price } = req.body;
-    db.get(`SELECT cash, btc FROM users WHERE id = ?`, [userId], (err, user) => {
-        if (user.btc < amount) return res.json({ success: false, message: 'Insufficient BTC' });
+// Sell
+app.post('/sell', async (req, res) => {
+  const { userId, amount, price } = req.body;
 
-        const newBTC = user.btc - amount;
-        const newCash = user.cash + (amount * price);
-        db.run(`UPDATE users SET cash = ?, btc = ? WHERE id = ?`, [newCash, newBTC, userId], () => {
-            const date = new Date().toISOString();
-            db.run(`INSERT INTO trades (user_id, type, amount, price, date) VALUES (?, 'SELL', ?, ?, ?)`,
-                [userId, amount, price, date], () => res.json({ success: true, cash: newCash, btc: newBTC }));
-        });
-    });
+  const userRes = await pool.query(`SELECT * FROM users WHERE id=$1`, [userId]);
+  const user = userRes.rows[0];
+  if (!user || user.btc < amount) return res.json({ success: false, message: "Insufficient BTC" });
+
+  await pool.query(`UPDATE users SET btc=btc-$1, cash=cash+($1*$2) WHERE id=$3`, [amount, price, userId]);
+  await pool.query(`INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)`, [userId, "SELL", amount, price]);
+
+  res.json({ success: true });
 });
 
-// ------------------- Admin Routes -------------------
-
-// Get all users except admin
-app.get('/admin/users', (req, res) => {
-    db.all(`SELECT id, username, cash, btc FROM users WHERE username != 'admin' ORDER BY id ASC`, [], (err, users) => {
-        if(err) return res.json({success:false, message: err.message});
-        res.json({ success: true, users });
-    });
+// --- Admin Endpoints ---
+app.get('/admin/users', async (req, res) => {
+  const users = await pool.query(`SELECT id, username, cash, btc FROM users`);
+  res.json({ users: users.rows });
 });
 
-// Update user's cash or BTC
-app.post('/admin/update', (req, res) => {
-    const { userId, cash, btc } = req.body;
-    db.run(`UPDATE users SET cash = ?, btc = ? WHERE id = ?`, [cash, btc, userId], (err) => {
-        if(err) return res.json({success:false, message: err.message});
-        res.json({ success: true });
-    });
+app.post('/admin/update', async (req, res) => {
+  const { userId, cash, btc } = req.body;
+  await pool.query(`UPDATE users SET cash=$1, btc=$2 WHERE id=$3`, [cash, btc, userId]);
+  res.json({ success: true });
 });
 
-// Get all trades (admin)
-app.get('/admin/trades', (req, res) => {
-    db.all(`SELECT trades.*, users.username FROM trades INNER JOIN users ON trades.user_id = users.id ORDER BY date DESC`, [], (err, trades) => {
-        if(err) return res.json({success:false, message:err.message});
-        res.json({ success: true, trades });
-    });
+app.get('/admin/trades', async (req, res) => {
+  const trades = await pool.query(`
+    SELECT t.*, u.username 
+    FROM trades t 
+    JOIN users u ON t.user_id = u.id
+    ORDER BY date DESC
+  `);
+  res.json({ trades: trades.rows });
 });
 
-// ------------------- Start Server -------------------
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+// Start
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
