@@ -2,39 +2,48 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Login - BTC Trader</title>
+<title>BTC Trader - Login</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="container">
-<div class="logo">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-    <circle cx="256" cy="256" r="256" fill="#f7931a"/>
-    <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
-  </svg>
-  BTC Trader
-</div>
-<h1>Login</h1>
-<input type="text" id="username" placeholder="Username">
-<input type="password" id="password" placeholder="Password">
-<button id="loginBtn">Login</button>
-<p id="message"></p>
-<p>New user? <a href="register.html">Register here</a></p>
+<div class="container login-container">
+  <div class="logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <circle cx="256" cy="256" r="256" fill="#f7931a"/>
+      <path fill="#fff" d="M300 203c9-61-79-69-92-8l-26 107 53 13 5-21c12 3 58 14 66-24 9-42-50-49-50-49zM243 166c5-21 32-15 28 5-5 21-32 15-28-5zM236 242l-5 21-53-13 26-107c13-61 101-53 92 8-8 44-66 27-66 27z"/>
+    </svg>
+    BTC Trader
+  </div>
+
+  <h1>Login</h1>
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <p id="message"></p>
+  <p>Don't have an account? <a href="register.html">Register here</a></p>
 </div>
 
 <script>
-document.getElementById('loginBtn').addEventListener('click', async () => {
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
-    if(!username || !password){ document.getElementById('message').textContent = 'Enter username and password'; return; }
+    if(!username || !password){ document.getElementById('message').textContent='Enter username & password'; return; }
 
-    const res = await fetch('/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username,password}) });
+    const res = await fetch('/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username,password})
+    });
     const data = await res.json();
-
-    if(!data.success){ document.getElementById('message').textContent = data.message; return; }
-
-    if(data.admin){ window.location.href = 'admin-dashboard.html'; } 
-    else { window.location.href = `user-dashboard.html?userId=${data.userId}`; }
+    if(!data.success){
+        document.getElementById('message').textContent = data.message;
+    } else {
+        if(data.admin){
+            window.location.href = 'admin-dashboard.html';
+        } else {
+            window.location.href = `user-dashboard.html?userId=${data.userId}`;
+        }
+    }
 });
 </script>
 </body>
