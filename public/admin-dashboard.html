@@ -8,40 +8,55 @@
 </head>
 <body>
   <header>
-    <img src="images/logo.png" alt="TradeSphere Logo" class="logo">
+    <img src="B10CD185-B0B2-4ACF-9906-CF907D46B9D6.png" alt="TradeSphere Logo">
     <h1>TradeSphere Admin</h1>
-    <button id="adminLogout" class="logout">Logout</button>
+    <button id="adminLogout">Logout</button>
   </header>
 
   <div class="container">
-    <!-- Users Card -->
-    <div class="card">
-      <h2>Users</h2>
-      <div class="alert" id="userAlert"></div>
-      <table id="usersTable">
-        <thead><tr><th>Username</th><th>Cash</th><th>BTC</th><th>Top Up</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <h2>Users</h2>
+    <div class="alert" id="userAlert"></div>
+    <table id="usersTable">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Cash</th>
+          <th>BTC</th>
+          <th>Top Up</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-    <!-- Trades Card -->
-    <div class="card">
-      <h2>Trade History</h2>
-      <table id="tradesTable">
-        <thead><tr><th>User</th><th>Date</th><th>Type</th><th>Amount</th><th>Price</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <h2>Trades</h2>
+    <table id="tradesTable">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-    <!-- Withdrawals Card -->
-    <div class="card">
-      <h2>Withdrawals</h2>
-      <div class="alert" id="withdrawalAlert"></div>
-      <table id="withdrawalsTable">
-        <thead><tr><th>User</th><th>Date</th><th>Amount</th><th>Wallet</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <h2>Withdrawals</h2>
+    <div class="alert" id="withdrawalAlert"></div>
+    <table id="withdrawalsTable">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Wallet</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
   <script src="admin-dashboard.js"></script>
