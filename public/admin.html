@@ -1,49 +1,73 @@
-<h1>Admin Dashboard</h1>
-<h2>Pending Withdrawals</h2>
-<table border="1" id="adminWithdrawalsTable">
-  <thead>
-    <tr>
-      <th>User</th>
-      <th>Amount</th>
-      <th>Wallet</th>
-      <th>Status</th>
-      <th>Date</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeSphere Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+<header>
+    <img src="logo.png" alt="TradeSphere Logo" class="logo"> <!-- replace logo.png -->
+    <h1>TradeSphere Admin</h1>
+</header>
+
+<div class="container">
+    <h2>Users</h2>
+    <table id="usersTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Cash</th>
+                <th>BTC</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Trades</h2>
+    <table id="tradesTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Price</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Withdrawals</h2>
+    <table id="withdrawalsTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Amount</th>
+                <th>Wallet</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<footer>
+    &copy; 2025 TradeSphere
+</footer>
+
+<script src="dashboard.js"></script>
 <script>
-async function loadAdminWithdrawals() {
-  const res = await fetch('/admin/withdrawals?status=pending');
-  const data = await res.json();
-  const tbody = document.querySelector('#adminWithdrawalsTable tbody');
-  tbody.innerHTML = '';
-  data.withdrawals.forEach(w => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${w.username}</td>
-      <td>${w.amount}</td>
-      <td>${w.wallet}</td>
-      <td>${w.status}</td>
-      <td>${new Date(w.date).toLocaleString()}</td>
-      <td><button onclick="process(${w.id})">Mark Processed</button></td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-async function process(id) {
-  const res = await fetch('/admin/withdrawals/process', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({id})
-  });
-  const data = await res.json();
-  alert(data.message);
-  loadAdminWithdrawals();
-}
-
-loadAdminWithdrawals();
+    // Admin-specific JS can be added here if needed
 </script>
+
+</body>
+</html>
