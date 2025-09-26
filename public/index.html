@@ -1,95 +1,115 @@
+<!-- /public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BTC Trader - Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeSphere - Login</title>
+  <link rel="stylesheet" href="style.css">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .login-box {
-      background: #262626;
+    /* Additional form-card & alert styling */
+    .form-card {
+      background-color: rgba(0,0,0,0.6);
       padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
-      width: 300px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+      max-width: 400px;
+      margin: auto;
+    }
+
+    .form-card h2 {
       text-align: center;
-    }
-    h2 {
       margin-bottom: 20px;
-      color: #f7931a;
+      color: #FFD700;
     }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border: none;
-      border-radius: 4px;
-    }
-    button {
-      width: 100%;
-      padding: 10px;
-      background: #f7931a;
-      border: none;
-      color: #000;
+
+    .alert {
+      padding: 10px 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
       font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
+      display: none; /* hidden by default */
     }
-    button:hover {
-      background: #ffa733;
+
+    .alert.success {
+      background-color: #28a745;
+      color: #fff;
     }
-    .msg {
-      margin-top: 10px;
-      font-size: 14px;
+
+    .alert.error {
+      background-color: #dc3545;
+      color: #fff;
     }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <h2>BTC Trader Login</h2>
-    <input type="text" id="username" placeholder="Username" />
-    <input type="password" id="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
-    <p class="msg" id="msg"></p>
+  <header>
+    <img src="images/logo.png" alt="TradeSphere Logo" class="logo">
+    <h1>TradeSphere</h1>
+  </header>
+
+  <div class="container">
+    <div class="form-card">
+      <h2>Login to Your Account</h2>
+      <div class="alert" id="alertMessage"></div>
+      <form id="loginForm">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="Enter username" required autocomplete="username">
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter password" required autocomplete="current-password">
+
+        <button type="submit">Login</button>
+      </form>
+      <p style="text-align:center;">Don't have an account? <a href="register.html" style="color:#1E90FF;">Register here</a></p>
+    </div>
   </div>
 
+  <footer>
+    &copy; 2025 TradeSphere
+  </footer>
+
   <script>
-    async function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const msg = document.getElementById("msg");
+    const form = document.getElementById('loginForm');
+    const alertBox = document.getElementById('alertMessage');
 
-      const res = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ username, password })
-      });
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
 
-      const data = await res.json();
-      if (!data.success) {
-        msg.textContent = data.message;
-        msg.style.color = "red";
+      if(!username || !password) {
+        alertBox.textContent = "Please fill in all fields.";
+        alertBox.className = "alert error";
+        alertBox.style.display = "block";
         return;
       }
 
-      // Save user info locally
-      localStorage.setItem("user", JSON.stringify(data.user));
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ username, password })
+        });
 
-      // Redirect based on role
-      if (data.user.role === "admin") {
-        window.location.href = "admin-dashboard.html";
-      } else {
-        window.location.href = "user-dashboard.html";
+        const data = await res.json();
+        alertBox.textContent = data.message;
+        alertBox.className = data.success ? "alert success" : "alert error";
+        alertBox.style.display = "block";
+
+        if(data.success) {
+          setTimeout(() => {
+            window.location.href = '/dashboard'; // adjust to your dashboard route
+          }, 1000);
+        }
+
+      } catch (err) {
+        alertBox.textContent = "Server error. Please try again later.";
+        alertBox.className = "alert error";
+        alertBox.style.display = "block";
+        console.error(err);
       }
-    }
+    });
   </script>
 </body>
 </html>
