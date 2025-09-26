@@ -1,4 +1,4 @@
-// server.js - TradeSphere Bitcoin Trading Platform
+// server.js
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
@@ -19,7 +19,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 🔹 Ensure tables exist + create admin
 (async () => {
-  // Users table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -31,7 +30,6 @@ app.use(express.static(path.join(__dirname, 'public')));
     )
   `);
 
-  // Trades table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS trades (
       id SERIAL PRIMARY KEY,
@@ -43,7 +41,6 @@ app.use(express.static(path.join(__dirname, 'public')));
     )
   `);
 
-  // Withdrawals table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS withdrawals (
       id SERIAL PRIMARY KEY,
