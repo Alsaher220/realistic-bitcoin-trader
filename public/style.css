@@ -25,6 +25,7 @@ header {
     justify-content: space-between;
     padding: 20px 50px;
     background-color: rgba(0, 0, 0, 0.7);
+    border-bottom: 2px solid #FFD700;
 }
 
 header img.logo {
@@ -47,6 +48,27 @@ header h1 {
     box-shadow: 0 0 20px rgba(0,0,0,0.8);
 }
 
+/* Forms */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+input, select {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    font-size: 1rem;
+    background-color: rgba(255,255,255,0.2);
+    color: #fff;
+}
+
+input::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
 /* Buttons */
 button {
     padding: 10px 20px;
@@ -63,21 +85,6 @@ button:hover {
     background-color: #00BFFF; /* DeepSkyBlue */
 }
 
-/* Forms */
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-input, select {
-    padding: 10px;
-    border-radius: 5px;
-    border: none;
-    font-size: 1rem;
-}
-
 /* Tables */
 table {
     width: 100%;
@@ -89,6 +96,7 @@ table th, table td {
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #555;
+    background-color: rgba(0,0,0,0.4);
 }
 
 table th {
@@ -97,7 +105,7 @@ table th {
 }
 
 table tr:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Alerts / Messages */
@@ -105,6 +113,7 @@ table tr:hover {
     padding: 10px 15px;
     border-radius: 5px;
     margin-bottom: 15px;
+    font-weight: bold;
 }
 
 .alert.success {
@@ -128,8 +137,17 @@ footer {
     color: #ccc;
 }
 
+/* Dashboard Cards */
+.card {
+    background-color: rgba(0,0,0,0.5);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.6);
+}
+
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     header {
         flex-direction: column;
         text-align: center;
@@ -138,5 +156,16 @@ footer {
     .container {
         margin: 20px auto;
         padding: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    table th, table td {
+        font-size: 0.9rem;
+        padding: 8px;
+    }
+
+    button {
+        width: 100%;
     }
 }
