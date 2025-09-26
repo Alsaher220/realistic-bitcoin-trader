@@ -6,26 +6,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TradeSphere - Register</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Additional form-card & alert styling */
+    .form-card {
+      background-color: rgba(0,0,0,0.6);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+      max-width: 400px;
+      margin: auto;
+    }
+
+    .form-card h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #FFD700;
+    }
+
+    .alert {
+      padding: 10px 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      font-weight: bold;
+      display: none; /* hidden by default */
+    }
+
+    .alert.success {
+      background-color: #28a745;
+      color: #fff;
+    }
+
+    .alert.error {
+      background-color: #dc3545;
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
   <header>
-    <img src="logo.png" alt="TradeSphere Logo" class="logo">
+    <img src="images/logo.png" alt="TradeSphere Logo" class="logo">
     <h1>TradeSphere</h1>
   </header>
 
   <div class="container">
     <div class="form-card">
       <h2>Create an Account</h2>
+      <div class="alert" id="alertMessage"></div>
       <form id="registerForm">
         <label for="username">Username</label>
-        <input type="text" id="username" name="username" placeholder="Enter username" required>
+        <input type="text" id="username" name="username" placeholder="Enter username" required autocomplete="username">
 
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" placeholder="Enter password" required>
+        <input type="password" id="password" name="password" placeholder="Enter password" required autocomplete="new-password">
 
         <button type="submit">Register</button>
       </form>
-      <p>Already have an account? <a href="index.html">Login here</a></p>
+      <p style="text-align:center;">Already have an account? <a href="index.html" style="color:#1E90FF;">Login here</a></p>
     </div>
   </div>
 
@@ -35,19 +71,44 @@
 
   <script>
     const form = document.getElementById('registerForm');
+    const alertBox = document.getElementById('alertMessage');
+
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
 
-      const res = await fetch('/register', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      alert(data.message);
-      if (data.success) window.location.href = 'index.html';
+      if(!username || !password) {
+        alertBox.textContent = "Please fill in all fields.";
+        alertBox.className = "alert error";
+        alertBox.style.display = "block";
+        return;
+      }
+
+      try {
+        const res = await fetch('/register', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+        alertBox.textContent = data.message;
+        alertBox.className = data.success ? "alert success" : "alert error";
+        alertBox.style.display = "block";
+
+        if(data.success) {
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1500);
+        }
+
+      } catch (err) {
+        alertBox.textContent = "Server error. Please try again later.";
+        alertBox.className = "alert error";
+        alertBox.style.display = "block";
+        console.error(err);
+      }
     });
   </script>
 </body>
