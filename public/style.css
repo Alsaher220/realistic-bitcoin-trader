@@ -1,182 +1,142 @@
-/* ================= GENERAL ================= */
+/* =======================
+   TradeSphere Style Sheet
+========================== */
+
+/* Reset default margins/padding */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Body & Background */
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f0f4f8;
-  color: #333;
-  margin: 0;
-  padding: 0;
+    background: url('bg.jpg') no-repeat center center fixed; /* Replace bg.jpg with your image */
+    background-size: cover;
+    color: #f0f0f0;
+    min-height: 100vh;
 }
 
-.container {
-  width: 90%;
-  max-width: 1200px;
-  margin: 30px auto;
-  padding: 25px;
-  background-color: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-h1, h2, h3 {
-  color: #0d3b66;
-}
-
-/* ================= HEADER / NAV ================= */
+/* Header / Logo */
 header {
-  background-color: #0d3b66;
-  color: #ffffff;
-  padding: 18px 0;
-  text-align: center;
-  border-bottom: 3px solid #00afb9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 50px;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+header img.logo {
+    height: 60px; /* Logo size */
 }
 
 header h1 {
-  margin: 0;
-  font-size: 26px;
-  letter-spacing: 1px;
+    font-size: 2rem;
+    color: #FFD700; /* Goldish color for TradeSphere title */
 }
 
-/* ================= DASHBOARD INFO ================= */
-.dashboard-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 25px;
-  gap: 15px;
+/* Container */
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: rgba(0,0,0,0.6);
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
 }
 
-.dashboard-info div {
-  background-color: #e0f7fa;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-  flex: 1;
-  transition: transform 0.2s, box-shadow 0.2s;
+/* Buttons */
+button {
+    padding: 10px 20px;
+    background-color: #1E90FF; /* DodgerBlue */
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
 }
 
-.dashboard-info div:hover {
-  transform: scale(1.03);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+button:hover {
+    background-color: #00BFFF; /* DeepSkyBlue */
 }
 
-.dashboard-info h3 {
-  margin: 0;
-  font-size: 14px;
-  color: #0077b6;
-  text-transform: uppercase;
-}
-
-.dashboard-info p {
-  font-size: 22px;
-  font-weight: bold;
-  margin: 8px 0 0;
-  color: #00afb9;
-}
-
-/* ================= FORMS ================= */
+/* Forms */
 form {
-  margin-bottom: 25px;
-  background-color: #f7f9fb;
-  padding: 15px;
-  border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
 }
 
-form input[type="text"],
-form input[type="number"],
-form input[type="password"],
-form input[type="email"],
-form select {
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  margin-bottom: 15px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: #ffffff;
-  color: #333;
+input, select {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    font-size: 1rem;
 }
 
-form button {
-  background-color: #00afb9;
-  color: #ffffff;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s;
-}
-
-form button:hover {
-  background-color: #00979c;
-}
-
-/* ================= TABLES ================= */
+/* Tables */
 table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 25px;
-  background-color: #ffffff;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
 }
 
 table th, table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #e0e0e0;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #555;
 }
 
 table th {
-  background-color: #0077b6;
-  color: #ffffff;
-}
-
-table tr:nth-child(even) {
-  background-color: #f2f7fa;
+    background-color: #333;
+    color: #FFD700;
 }
 
 table tr:hover {
-  background-color: #d0f0f7;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* ================= ALERTS ================= */
+/* Alerts / Messages */
 .alert {
-  padding: 12px;
-  margin-bottom: 15px;
-  border-radius: 6px;
-  color: #ffffff;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
 }
 
-.alert-success {
-  background-color: #00afb9;
+.alert.success {
+    background-color: #28a745;
+    color: #fff;
 }
 
-.alert-error {
-  background-color: #ff6b6b;
+.alert.error {
+    background-color: #dc3545;
+    color: #fff;
 }
 
-/* ================= BUTTONS ================= */
-.btn {
-  display: inline-block;
-  padding: 10px 18px;
-  margin: 5px 0;
-  background-color: #00afb9;
-  color: #ffffff;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: rgba(0,0,0,0.7);
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+    color: #ccc;
 }
 
-.btn:hover {
-  background-color: #00979c;
-}
-
-/* ================= RESPONSIVE ================= */
+/* Responsive */
 @media (max-width: 768px) {
-  .dashboard-info {
-    flex-direction: column;
-  }
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .container {
+        margin: 20px auto;
+        padding: 15px;
+    }
 }
