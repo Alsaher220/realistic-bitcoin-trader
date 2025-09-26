@@ -1,10 +1,13 @@
-// dashboard.js
-
 const userId = localStorage.getItem('userId'); // Set on login
 const usernameSpan = document.getElementById('username');
 const cashSpan = document.getElementById('cash');
 const btcSpan = document.getElementById('btc');
 const withdrawalsTable = document.querySelector('#withdrawalsTable tbody');
+
+// Alert elements
+const buyAlert = document.getElementById('buyAlert');
+const sellAlert = document.getElementById('sellAlert');
+const withdrawAlert = document.getElementById('withdrawAlert');
 
 async function fetchUserData() {
   try {
@@ -43,6 +46,13 @@ async function loadWithdrawals() {
   }
 }
 
+function showAlert(element, message, isSuccess = true) {
+  element.textContent = message;
+  element.className = `alert ${isSuccess ? 'success' : 'error'}`;
+  element.style.display = 'block';
+  setTimeout(() => { element.style.display = 'none'; }, 3000);
+}
+
 // Buy BTC
 document.getElementById('buyForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -56,10 +66,12 @@ document.getElementById('buyForm').addEventListener('submit', async e => {
       body: JSON.stringify({userId, amount, price})
     });
     const data = await res.json();
-    alert(data.message || 'BTC purchased!');
+    showAlert(buyAlert, data.message || 'BTC purchased!', data.success);
     fetchUserData();
+    e.target.reset();
   } catch (err) {
     console.error("Buy error:", err);
+    showAlert(buyAlert, 'Error purchasing BTC', false);
   }
 });
 
@@ -76,10 +88,12 @@ document.getElementById('sellForm').addEventListener('submit', async e => {
       body: JSON.stringify({userId, amount, price})
     });
     const data = await res.json();
-    alert(data.message || 'BTC sold!');
+    showAlert(sellAlert, data.message || 'BTC sold!', data.success);
     fetchUserData();
+    e.target.reset();
   } catch (err) {
     console.error("Sell error:", err);
+    showAlert(sellAlert, 'Error selling BTC', false);
   }
 });
 
@@ -96,11 +110,17 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
       body: JSON.stringify({userId, amount, wallet})
     });
     const data = await res.json();
-    alert(data.message);
+    showAlert(withdrawAlert, data.message, data.success);
     fetchUserData();
+    e.target.reset();
   } catch (err) {
     console.error("Withdraw error:", err);
+    showAlert(withdrawAlert, 'Error requesting withdrawal', false);
   }
 });
 
+// Initial fetch
 fetchUserData();
+
+// Auto-refresh every 5 seconds
+setInterval(fetchUserData, 5000);
