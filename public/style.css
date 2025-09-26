@@ -12,7 +12,7 @@
 
 /* Body & Background */
 body {
-    background: url('bg.jpg') no-repeat center center fixed; /* Replace bg.jpg with your image */
+    background: url('images/bg.png') no-repeat center center fixed; /* Updated for PNG image */
     background-size: cover;
     color: #f0f0f0;
     min-height: 100vh;
