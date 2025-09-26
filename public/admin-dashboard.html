@@ -2,36 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TradeSphere Admin Dashboard</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: url('images/bg.png') no-repeat center center fixed; background-size: cover; color:#f0f0f0; margin:0; }
-    header { background: rgba(0,0,0,0.8); padding:15px 30px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #FFD700; }
-    header img { height:50px; }
-    header h1 { color:#FFD700; margin:0; }
-    .container { width:90%; max-width:1200px; margin:30px auto; }
-    h2 { border-bottom:2px solid #FFD700; padding-bottom:5px; margin-top:30px; color:#FFD700; }
-    .card { background-color: rgba(0,0,0,0.6); padding:20px; border-radius:15px; margin-bottom:30px; box-shadow:0 0 20px rgba(0,0,0,0.7); }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { border:1px solid #444; padding:8px; text-align:center; background: rgba(0,0,0,0.4); }
-    th { background-color:#333; color:#FFD700; }
-    button { padding:5px 10px; border:none; border-radius:4px; cursor:pointer; transition:0.3s; }
-    .logout { background:#d9534f; color:#fff; }
-    .logout:hover { background:#c9302c; }
-    .action-btn { background:#1E90FF; color:#fff; }
-    .action-btn:hover { background:#00BFFF; }
-    input { width:70px; padding:5px; border-radius:4px; border:none; margin-right:5px; }
-    .alert { padding:10px 15px; border-radius:5px; margin-bottom:10px; font-weight:bold; display:none; }
-    .alert.success { background:#28a745; color:#fff; }
-    .alert.error { background:#dc3545; color:#fff; }
-    @media (max-width:768px) { table th, table td { font-size:0.9rem; padding:6px; } input { width:50px; } }
-  </style>
 </head>
 <body>
   <header>
-    <img src="images/logo.png" alt="TradeSphere Logo">
-    <h1>TradeSphere Admin Dashboard</h1>
-    <button class="logout" onclick="logout()">Logout</button>
+    <img src="images/logo.png" alt="TradeSphere Logo" class="logo">
+    <h1>TradeSphere Admin</h1>
+    <button id="adminLogout" class="logout">Logout</button>
   </header>
 
   <div class="container">
@@ -65,108 +44,6 @@
     </div>
   </div>
 
-  <script>
-    function showAlert(element, message, isSuccess = true) {
-      element.textContent = message;
-      element.className = `alert ${isSuccess ? 'success' : 'error'}`;
-      element.style.display = 'block';
-      setTimeout(() => { element.style.display = 'none'; }, 3000);
-    }
-
-    async function loadUsers() {
-      const res = await fetch('/admin/users');
-      const data = await res.json();
-      const tbody = document.querySelector("#usersTable tbody");
-      tbody.innerHTML = "";
-      data.users.forEach(u => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${u.username}</td>
-          <td>$${u.cash}</td>
-          <td>${u.btc} BTC</td>
-          <td>
-            <input type="number" id="cash-${u.id}" placeholder="Cash">
-            <input type="number" id="btc-${u.id}" placeholder="BTC">
-            <button class="action-btn" onclick="topUp(${u.id})">Top Up</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function loadTrades() {
-      const res = await fetch('/admin/trades');
-      const data = await res.json();
-      const tbody = document.querySelector("#tradesTable tbody");
-      tbody.innerHTML = "";
-      data.trades.forEach(t => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${t.username}</td>
-          <td>${new Date(t.date).toLocaleString()}</td>
-          <td>${t.type}</td>
-          <td>${t.amount}</td>
-          <td>${t.price}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function loadWithdrawals() {
-      const res = await fetch('/admin/withdrawals');
-      const data = await res.json();
-      const tbody = document.querySelector("#withdrawalsTable tbody");
-      tbody.innerHTML = "";
-      data.withdrawals.forEach(w => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${w.username}</td>
-          <td>${new Date(w.date).toLocaleString()}</td>
-          <td>$${w.amount}</td>
-          <td>${w.wallet}</td>
-          <td>${w.status}</td>
-          <td>
-            ${w.status === 'pending' ? `<button class="action-btn" onclick="processWithdrawal(${w.id})">Process</button>` : "✅ Processed"}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function topUp(userId) {
-      const cash = parseFloat(document.getElementById(`cash-${userId}`).value) || 0;
-      const btc = parseFloat(document.getElementById(`btc-${userId}`).value) || 0;
-      try {
-        await fetch('/admin/topup', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ userId, cash, btc })
-        });
-        showAlert(document.getElementById('userAlert'), 'User topped up successfully');
-        loadUsers();
-      } catch(err) {
-        showAlert(document.getElementById('userAlert'), 'Top-up failed', false);
-      }
-    }
-
-    async function processWithdrawal(id) {
-      try {
-        await fetch('/admin/withdrawals/process', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ id })
-        });
-        showAlert(document.getElementById('withdrawalAlert'), 'Withdrawal processed successfully');
-        loadWithdrawals();
-      } catch(err) {
-        showAlert(document.getElementById('withdrawalAlert'), 'Failed to process withdrawal', false);
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem("user");
-      window.location.href = "index.html";
-    }
-
-    loadUsers(); loadTrades(); loadWithdrawals();
-  </script>
+  <script src="admin-dashboard.js"></script>
 </body>
 </html>
