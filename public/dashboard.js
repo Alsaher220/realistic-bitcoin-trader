@@ -1,11 +1,11 @@
-// dashboard.js - TradeSphere User Dashboard
+// dashboard.js
+
 const userId = localStorage.getItem('userId'); // Set on login
 const usernameSpan = document.getElementById('username');
 const cashSpan = document.getElementById('cash');
 const btcSpan = document.getElementById('btc');
 const withdrawalsTable = document.querySelector('#withdrawalsTable tbody');
 
-// Fetch user data
 async function fetchUserData() {
   try {
     const res = await fetch(`/user/${userId}`);
@@ -13,7 +13,7 @@ async function fetchUserData() {
     if (data.success) {
       usernameSpan.textContent = data.user.username;
       cashSpan.textContent = parseFloat(data.user.cash).toFixed(2);
-      btcSpan.textContent = parseFloat(data.user.btc).toFixed(4);
+      btcSpan.textContent = parseFloat(data.user.btc).toFixed(6);
       loadWithdrawals();
     }
   } catch (err) {
@@ -21,19 +21,20 @@ async function fetchUserData() {
   }
 }
 
-// Load withdrawal history
 async function loadWithdrawals() {
   try {
     const res = await fetch(`/user/${userId}/withdrawals`);
     const data = await res.json();
     withdrawalsTable.innerHTML = '';
-    if (data.success && data.withdrawals.length) {
+    if (data.success) {
       data.withdrawals.forEach(w => {
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${parseFloat(w.amount).toFixed(2)}</td>
-                         <td>${w.wallet}</td>
-                         <td>${w.status}</td>
-                         <td>${new Date(w.date).toLocaleString()}</td>`;
+        row.innerHTML = `
+          <td>${parseFloat(w.amount).toFixed(2)}</td>
+          <td>${w.wallet}</td>
+          <td>${w.status}</td>
+          <td>${new Date(w.date).toLocaleString()}</td>
+        `;
         withdrawalsTable.appendChild(row);
       });
     }
@@ -42,15 +43,11 @@ async function loadWithdrawals() {
   }
 }
 
-// ================= BUY BTC =================
+// Buy BTC
 document.getElementById('buyForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('buyAmount').value);
   const price = parseFloat(document.getElementById('buyPrice').value);
-  if (!amount || !price || amount <= 0 || price <= 0) {
-    alert("Enter valid amount and price");
-    return;
-  }
 
   try {
     const res = await fetch('/buy', {
@@ -62,19 +59,15 @@ document.getElementById('buyForm').addEventListener('submit', async e => {
     alert(data.message || 'BTC purchased!');
     fetchUserData();
   } catch (err) {
-    console.error("Error buying BTC:", err);
+    console.error("Buy error:", err);
   }
 });
 
-// ================= SELL BTC =================
+// Sell BTC
 document.getElementById('sellForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('sellAmount').value);
   const price = parseFloat(document.getElementById('sellPrice').value);
-  if (!amount || !price || amount <= 0 || price <= 0) {
-    alert("Enter valid amount and price");
-    return;
-  }
 
   try {
     const res = await fetch('/sell', {
@@ -86,19 +79,15 @@ document.getElementById('sellForm').addEventListener('submit', async e => {
     alert(data.message || 'BTC sold!');
     fetchUserData();
   } catch (err) {
-    console.error("Error selling BTC:", err);
+    console.error("Sell error:", err);
   }
 });
 
-// ================= WITHDRAW BTC =================
+// Withdraw
 document.getElementById('withdrawForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('withdrawAmount').value);
   const wallet = document.getElementById('withdrawWallet').value;
-  if (!amount || amount <= 0 || !wallet) {
-    alert("Enter valid amount and wallet address");
-    return;
-  }
 
   try {
     const res = await fetch('/withdraw', {
@@ -110,9 +99,8 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
     alert(data.message);
     fetchUserData();
   } catch (err) {
-    console.error("Error requesting withdrawal:", err);
+    console.error("Withdraw error:", err);
   }
 });
 
-// Fetch data on page load
 fetchUserData();
