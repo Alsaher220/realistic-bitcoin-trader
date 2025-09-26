@@ -1,32 +1,14 @@
-// auth.js - JWT Helper for TradeSphere
-const jwt = require('jsonwebtoken');
-const secret = process.env.JWT_SECRET || 'supersecretkey';
+// utils/auth.js
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
-// Generate JWT token for user
-function generateToken(user) {
-  return jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    secret,
-    { expiresIn: '1d' }
-  );
-}
-
-// Middleware to verify JWT token
-function verifyToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, secret);
-    req.user = decoded;
+// Middleware to protect admin routes
+function verifyAdmin(req, res, next) {
+  const secret = req.headers['x-admin-secret'];
+  if (secret && secret === ADMIN_SECRET) {
     next();
-  } catch (err) {
-    res.status(400).json({ success: false, message: 'Invalid token.' });
+  } else {
+    res.status(403).json({ success: false, message: 'Unauthorized. Admin only.' });
   }
 }
 
-module.exports = { generateToken, verifyToken };
+module.exports = { verifyAdmin };
