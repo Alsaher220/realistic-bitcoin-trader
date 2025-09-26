@@ -1,73 +1,44 @@
+<!-- public/admin.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TradeSphere Admin Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TradeSphere Admin Login</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="container">
+    <h2>Admin Login</h2>
+    <form id="adminLoginForm">
+      <input type="password" id="adminSecret" placeholder="Enter Admin Secret" required>
+      <button type="submit">Login</button>
+    </form>
+    <div class="alert" id="adminAlert" style="display:none;"></div>
+  </div>
 
-<header>
-    <img src="logo.png" alt="TradeSphere Logo" class="logo"> <!-- replace logo.png -->
-    <h1>TradeSphere Admin</h1>
-</header>
+  <script>
+    const form = document.getElementById('adminLoginForm');
+    const alertBox = document.getElementById('adminAlert');
 
-<div class="container">
-    <h2>Users</h2>
-    <table id="usersTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>Cash</th>
-                <th>BTC</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const secret = document.getElementById('adminSecret').value.trim();
+      if (!secret) {
+        showAlert('Secret cannot be empty', false);
+        return;
+      }
+      sessionStorage.setItem('ADMIN_SECRET', secret);
+      // Redirect to your dashboard page
+      window.location.href = 'admin-dashboard.html';
+    });
 
-    <h2>Trades</h2>
-    <table id="tradesTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>User</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Price</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <h2>Withdrawals</h2>
-    <table id="withdrawalsTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>User</th>
-                <th>Amount</th>
-                <th>Wallet</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-<footer>
-    &copy; 2025 TradeSphere
-</footer>
-
-<script src="dashboard.js"></script>
-<script>
-    // Admin-specific JS can be added here if needed
-</script>
-
+    function showAlert(message, success=true) {
+      alertBox.textContent = message;
+      alertBox.className = `alert ${success ? 'success' : 'error'}`;
+      alertBox.style.display = 'block';
+      setTimeout(() => { alertBox.style.display = 'none'; }, 3000);
+    }
+  </script>
 </body>
 </html>
