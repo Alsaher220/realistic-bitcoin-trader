@@ -1,15 +1,23 @@
 {
-  "name": "bitcoin-trader",
+  "name": "realistic-bitcoin-trader",
   "version": "1.0.0",
-  "description": "A realistic Bitcoin trading demo with user/admin dashboards, persistent database, and secure login system.",
+  "description": "A realistic Bitcoin trading platform with user/admin dashboards",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",          // Production: normal Node.js run
+    "dev": "nodemon server.js",         // Development: auto-reload with Nodemon
+    "test": "echo \"No tests yet\" && exit 0"
   },
+  "keywords": ["bitcoin", "trading", "crypto", "node", "express", "postgres"],
+  "author": "Your Name",
+  "license": "MIT",
   "dependencies": {
     "bcrypt": "^5.1.0",
     "body-parser": "^1.20.2",
     "express": "^4.18.2",
-    "pg": "^8.11.3"
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
