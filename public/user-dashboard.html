@@ -1,66 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TradeSphere Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeSphere Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Form cards & alerts */
+    .card {
+      background-color: rgba(0,0,0,0.6);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+      margin-bottom: 30px;
+    }
+
+    .card h3 {
+      margin-bottom: 15px;
+      color: #FFD700;
+    }
+
+    input, button {
+      margin-bottom: 10px;
+    }
+
+    .alert {
+      padding: 10px 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      font-weight: bold;
+      display: none;
+    }
+
+    .alert.success {
+      background-color: #28a745;
+      color: #fff;
+    }
+
+    .alert.error {
+      background-color: #dc3545;
+      color: #fff;
+    }
+
+    table th, table td {
+      background-color: rgba(0,0,0,0.4);
+      color: #fff;
+    }
+
+    table th {
+      color: #FFD700;
+    }
+  </style>
 </head>
 <body>
-
-<header>
-    <img src="logo.png" alt="TradeSphere Logo" class="logo"> <!-- replace with your logo -->
+  <header>
+    <img src="images/logo.png" alt="TradeSphere Logo" class="logo">
     <h1>TradeSphere Dashboard</h1>
-</header>
+  </header>
 
-<div class="container">
+  <div class="container">
     <h2>Welcome, <span id="username">User</span></h2>
     <p>Cash Balance: $<span id="cash">0</span></p>
     <p>BTC Balance: <span id="btc">0</span> BTC</p>
 
     <!-- Buy BTC -->
-    <form id="buyForm">
-        <h3>Buy BTC</h3>
+    <div class="card">
+      <h3>Buy BTC</h3>
+      <div class="alert" id="buyAlert"></div>
+      <form id="buyForm">
         <input type="number" id="buyAmount" placeholder="Amount of BTC" step="0.0001" required>
         <input type="number" id="buyPrice" placeholder="Price per BTC" step="0.01" required>
         <button type="submit">Buy</button>
-    </form>
+      </form>
+    </div>
 
     <!-- Sell BTC -->
-    <form id="sellForm">
-        <h3>Sell BTC</h3>
+    <div class="card">
+      <h3>Sell BTC</h3>
+      <div class="alert" id="sellAlert"></div>
+      <form id="sellForm">
         <input type="number" id="sellAmount" placeholder="Amount of BTC" step="0.0001" required>
         <input type="number" id="sellPrice" placeholder="Price per BTC" step="0.01" required>
         <button type="submit">Sell</button>
-    </form>
+      </form>
+    </div>
 
     <!-- Withdraw -->
-    <form id="withdrawForm">
-        <h3>Withdraw</h3>
+    <div class="card">
+      <h3>Withdraw</h3>
+      <div class="alert" id="withdrawAlert"></div>
+      <form id="withdrawForm">
         <input type="number" id="withdrawAmount" placeholder="Amount to withdraw" step="0.01" required>
         <input type="text" id="withdrawWallet" placeholder="Wallet address" required>
         <button type="submit">Request Withdrawal</button>
-    </form>
+      </form>
+    </div>
 
     <!-- Withdrawal History -->
-    <h3>Withdrawal History</h3>
-    <table id="withdrawalsTable">
+    <div class="card">
+      <h3>Withdrawal History</h3>
+      <table id="withdrawalsTable">
         <thead>
-            <tr>
-                <th>Amount</th>
-                <th>Wallet</th>
-                <th>Status</th>
-                <th>Date</th>
-            </tr>
+          <tr>
+            <th>Amount</th>
+            <th>Wallet</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
         </thead>
         <tbody></tbody>
-    </table>
-</div>
+      </table>
+    </div>
+  </div>
 
-<footer>
+  <footer>
     &copy; 2025 TradeSphere
-</footer>
+  </footer>
 
-<script src="dashboard.js"></script>
+  <script src="dashboard.js"></script>
 </body>
 </html>
