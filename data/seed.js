@@ -3,6 +3,7 @@ require('dotenv').config();
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 
+// Setup Postgres connection (works with Render Postgres)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
@@ -10,11 +11,13 @@ const pool = new Pool({
 
 (async () => {
   try {
-    // Hash password for sample users
+    // Hash passwords for users and admin
     const userPassword = await bcrypt.hash("password123", 10);
     const adminPassword = await bcrypt.hash("admin123", 10);
 
-    // Insert sample users (3 users)
+    // -------------------
+    // Insert sample users (3 test users)
+    // -------------------
     await pool.query(`
       INSERT INTO users (username, password, role, cash, btc)
       VALUES 
@@ -24,14 +27,18 @@ const pool = new Pool({
       ON CONFLICT (username) DO NOTHING
     `, [userPassword]);
 
-    // Insert admin user (optional row for testing)
+    // -------------------
+    // Insert admin user (1 admin for testing)
+    // -------------------
     await pool.query(`
       INSERT INTO users (username, password, role, cash, btc)
       VALUES ('admin', $1, 'admin', 0, 0)
       ON CONFLICT (username) DO NOTHING
     `, [adminPassword]);
 
+    // -------------------
     // Insert sample trades
+    // -------------------
     await pool.query(`
       INSERT INTO trades (user_id, type, amount, price)
       VALUES 
@@ -39,7 +46,9 @@ const pool = new Pool({
         (2, 'SELL', 0.2, 42000)
     `);
 
+    // -------------------
     // Insert sample withdrawals
+    // -------------------
     await pool.query(`
       INSERT INTO withdrawals (user_id, amount, wallet, status)
       VALUES 
@@ -50,7 +59,7 @@ const pool = new Pool({
     console.log("✅ Sample data inserted successfully!");
     process.exit();
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error inserting sample data:", err);
     process.exit(1);
   }
 })();
