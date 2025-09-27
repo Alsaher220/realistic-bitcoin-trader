@@ -1,4 +1,5 @@
 // seed.js - Sample data for TradeSphere
+require('dotenv').config();
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 
@@ -10,16 +11,25 @@ const pool = new Pool({
 (async () => {
   try {
     // Hash password for sample users
-    const password = await bcrypt.hash("password123", 10);
+    const userPassword = await bcrypt.hash("password123", 10);
+    const adminPassword = await bcrypt.hash("admin123", 10);
 
-    // Insert sample users
+    // Insert sample users (3 users)
     await pool.query(`
       INSERT INTO users (username, password, role, cash, btc)
       VALUES 
         ('user1', $1, 'user', 5000, 1),
-        ('user2', $1, 'user', 3000, 0.5)
+        ('user2', $1, 'user', 3000, 0.5),
+        ('user3', $1, 'user', 2000, 0.25)
       ON CONFLICT (username) DO NOTHING
-    `, [password]);
+    `, [userPassword]);
+
+    // Insert admin user (optional row for testing)
+    await pool.query(`
+      INSERT INTO users (username, password, role, cash, btc)
+      VALUES ('admin', $1, 'admin', 0, 0)
+      ON CONFLICT (username) DO NOTHING
+    `, [adminPassword]);
 
     // Insert sample trades
     await pool.query(`
