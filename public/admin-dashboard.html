@@ -15,7 +15,7 @@
 
   <div class="container">
     <h2>Users</h2>
-    <div class="alert" id="userAlert"></div>
+    <div class="alert" id="userAlert" style="display:none;"></div>
     <table id="usersTable">
       <thead>
         <tr>
@@ -43,7 +43,7 @@
     </table>
 
     <h2>Withdrawals</h2>
-    <div class="alert" id="withdrawalAlert"></div>
+    <div class="alert" id="withdrawalAlert" style="display:none;"></div>
     <table id="withdrawalsTable">
       <thead>
         <tr>
@@ -58,6 +58,28 @@
       <tbody></tbody>
     </table>
   </div>
+
+  <!-- =======================
+       Admin Dashboard Scripts
+  ======================= -->
+  <script>
+    // Protect admin page
+    if (!sessionStorage.getItem('ADMIN_SECRET')) {
+      alert('Access denied! Admin login required.');
+      window.location.href = 'admin.html';
+    }
+
+    // Logout functionality
+    const logoutBtn = document.getElementById('adminLogout');
+    logoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('ADMIN_SECRET');
+      window.location.href = 'admin.html';
+    });
+
+    // Hide alerts initially
+    document.getElementById('userAlert').style.display = 'none';
+    document.getElementById('withdrawalAlert').style.display = 'none';
+  </script>
 
   <script src="admin-dashboard.js"></script>
 </body>
