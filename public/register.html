@@ -98,8 +98,11 @@
         alertBox.style.display = "block";
 
         if(data.success) {
+          // ✅ Save userId for dashboard.js right after registration
+          localStorage.setItem('userId', data.user.id);
+
           setTimeout(() => {
-            window.location.href = 'index.html';
+            window.location.href = '/dashboard';
           }, 1500);
         }
 
