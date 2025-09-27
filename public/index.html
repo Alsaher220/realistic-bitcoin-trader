@@ -69,6 +69,7 @@
     &copy; 2025 TradeSphere
   </footer>
 
+  <!-- ✅ Login Script -->
   <script>
     const form = document.getElementById('loginForm');
     const alertBox = document.getElementById('alertMessage');
@@ -98,8 +99,11 @@
         alertBox.style.display = "block";
 
         if(data.success) {
+          // ✅ Save userId for dashboard.js
+          localStorage.setItem('userId', data.user.id);
+
           setTimeout(() => {
-            window.location.href = '/dashboard'; // adjust to your dashboard route
+            window.location.href = '/dashboard'; 
           }, 1000);
         }
 
