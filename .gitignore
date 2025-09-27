@@ -1,45 +1,78 @@
+# =======================
 # Logs
+# =======================
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 
+# =======================
 # Runtime data
+# =======================
 pids
 *.pid
 *.pid.lock
 
+# =======================
 # Node modules
+# =======================
 node_modules/
 
+# =======================
 # Environment files (keep keys safe)
+# =======================
 .env
 .env.*
 
+# =======================
 # npm / yarn cache
+# =======================
 .npm
 .yarn/*
 
+# =======================
 # Build outputs
+# =======================
 dist/
+build/
+out/
 .cache/
 .parcel-cache/
 
+# =======================
 # Coverage & testing
+# =======================
 coverage/
 *.lcov
-.nyc_output
+.nyc_output/
+test-results/
+jest-results.json
 
+# =======================
 # IDE / editor files
+# =======================
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
+*.swp
+*.DS_Store
+*.bak
 
+# =======================
 # TypeScript cache
+# =======================
 *.tsbuildinfo
 
+# =======================
 # Misc / temporary
+# =======================
 *.tgz
 *.seed
+*.sqlite
+*.db
+
+# =======================
+# System Files
+# =======================
+Thumbs.db
