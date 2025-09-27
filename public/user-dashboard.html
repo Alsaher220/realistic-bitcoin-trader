@@ -5,10 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TradeSphere User Dashboard</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .alert {
+      padding: 10px 15px;
+      border-radius: 5px;
+      margin: 15px 0;
+      font-weight: bold;
+      display: none;
+    }
+    .alert.success { background-color: #28a745; color: #fff; }
+    .alert.error { background-color: #dc3545; color: #fff; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+  </style>
 </head>
 <body>
   <header>
-    <img src="B10CD185-B0B2-4ACF-9906-CF907D46B9D6.png" alt="TradeSphere Logo">
+    <img src="images/logo.png" alt="TradeSphere Logo" class="logo">
     <h1>TradeSphere</h1>
     <button onclick="logout()">Logout</button>
   </header>
@@ -18,6 +43,9 @@
     <p>Username: <span id="username"></span></p>
     <p>Cash: $<span id="cash"></span></p>
     <p>BTC: <span id="btc"></span> BTC</p>
+
+    <!-- alert message -->
+    <div id="alertMessage" class="alert"></div>
 
     <h2>Withdrawals</h2>
     <table id="withdrawalsTable">
@@ -53,6 +81,10 @@
       <button type="submit">Withdraw</button>
     </form>
   </div>
+
+  <footer>
+    &copy; 2025 TradeSphere
+  </footer>
 
   <script src="dashboard.js"></script>
 </body>
