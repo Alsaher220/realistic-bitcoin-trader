@@ -114,6 +114,7 @@ table tr:hover {
     border-radius: 5px;
     margin-bottom: 15px;
     font-weight: bold;
+    display: none; /* hidden by default until triggered */
 }
 
 .alert.success {
@@ -123,6 +124,11 @@ table tr:hover {
 
 .alert.error {
     background-color: #dc3545;
+    color: #fff;
+}
+
+.alert.info {
+    background-color: #17a2b8; /* Teal/blue info alert */
     color: #fff;
 }
 
