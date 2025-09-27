@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -18,6 +17,11 @@ const pool = new Pool({
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
+
+// ---------- ROOT TEST ----------
+app.get('/', (req, res) => {
+  res.send('TradeSphere Server is running!');
+});
 
 // ------------------- USER ROUTES ------------------- //
 
@@ -47,14 +51,15 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    const result = await pool.query('SELECT * FROM users WHERE username=$1', [username]);
+    const result = await pool.query('SELECT id, username, cash, btc, password FROM users WHERE username=$1', [username]);
     const user = result.rows[0];
     if (!user) return res.json({ success: false, message: 'User not found' });
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.json({ success: false, message: 'Incorrect password' });
 
-    res.json({ success: true, message: 'Login successful', userId: user.id });
+    // ✅ Return full user object to match dashboard.js
+    res.json({ success: true, message: 'Login successful', user: { id: user.id, username: user.username, cash: user.cash, btc: user.btc } });
   } catch (err) {
     console.error(err);
     res.json({ success: false, message: 'Login failed' });
@@ -84,14 +89,8 @@ app.post('/buy', async (req, res) => {
     if (!user) return res.json({ success: false, message: 'User not found' });
     if (user.cash < cost) return res.json({ success: false, message: 'Insufficient cash' });
 
-    await pool.query(
-      'UPDATE users SET cash = cash - $1, btc = btc + $2 WHERE id=$3',
-      [cost, amount, userId]
-    );
-    await pool.query(
-      'INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)',
-      [userId, 'buy', amount, price]
-    );
+    await pool.query('UPDATE users SET cash = cash - $1, btc = btc + $2 WHERE id=$3', [cost, amount, userId]);
+    await pool.query('INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)', [userId, 'buy', amount, price]);
     res.json({ success: true, message: 'BTC purchased!' });
   } catch (err) {
     console.error(err);
@@ -109,14 +108,8 @@ app.post('/sell', async (req, res) => {
     if (user.btc < amount) return res.json({ success: false, message: 'Insufficient BTC' });
 
     const gain = amount * price;
-    await pool.query(
-      'UPDATE users SET cash = cash + $1, btc = btc - $2 WHERE id=$3',
-      [gain, amount, userId]
-    );
-    await pool.query(
-      'INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)',
-      [userId, 'sell', amount, price]
-    );
+    await pool.query('UPDATE users SET cash = cash + $1, btc = btc - $2 WHERE id=$3', [gain, amount, userId]);
+    await pool.query('INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)', [userId, 'sell', amount, price]);
     res.json({ success: true, message: 'BTC sold!' });
   } catch (err) {
     console.error(err);
@@ -134,10 +127,7 @@ app.post('/withdraw', async (req, res) => {
     if (user.cash < amount) return res.json({ success: false, message: 'Insufficient cash' });
 
     await pool.query('UPDATE users SET cash = cash - $1 WHERE id=$2', [amount, userId]);
-    await pool.query(
-      'INSERT INTO withdrawals (user_id, amount, wallet) VALUES ($1,$2,$3)',
-      [userId, amount, wallet]
-    );
+    await pool.query('INSERT INTO withdrawals (user_id, amount, wallet) VALUES ($1,$2,$3)', [userId, amount, wallet]);
     res.json({ success: true, message: 'Withdrawal requested!' });
   } catch (err) {
     console.error(err);
@@ -149,10 +139,7 @@ app.post('/withdraw', async (req, res) => {
 app.get('/user/:id/withdrawals', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query(
-      'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
-      [id]
-    );
+    const result = await pool.query('SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC', [id]);
     res.json({ success: true, withdrawals: result.rows });
   } catch (err) {
     console.error(err);
@@ -170,17 +157,13 @@ app.get('/admin/users', verifyAdmin, async (req, res) => {
 
 // Get all trades
 app.get('/admin/trades', verifyAdmin, async (req, res) => {
-  const result = await pool.query(
-    'SELECT trades.*, users.username FROM trades JOIN users ON trades.user_id=users.id ORDER BY date DESC'
-  );
+  const result = await pool.query('SELECT trades.*, users.username FROM trades JOIN users ON trades.user_id=users.id ORDER BY date DESC');
   res.json({ trades: result.rows });
 });
 
 // Get all withdrawals
 app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
-  const result = await pool.query(
-    'SELECT withdrawals.*, users.username FROM withdrawals JOIN users ON withdrawals.user_id=users.id ORDER BY date DESC'
-  );
+  const result = await pool.query('SELECT withdrawals.*, users.username FROM withdrawals JOIN users ON withdrawals.user_id=users.id ORDER BY date DESC');
   res.json({ withdrawals: result.rows });
 });
 
@@ -200,10 +183,7 @@ app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
 app.post('/admin/topup', verifyAdmin, async (req, res) => {
   const { userId, cash, btc } = req.body;
   try {
-    await pool.query(
-      'UPDATE users SET cash = cash + $1, btc = btc + $2 WHERE id=$3',
-      [cash, btc, userId]
-    );
+    await pool.query('UPDATE users SET cash = cash + $1, btc = btc + $2 WHERE id=$3', [cash, btc, userId]);
     res.json({ success: true, message: 'User topped up' });
   } catch (err) {
     console.error(err);
@@ -211,7 +191,7 @@ app.post('/admin/topup', verifyAdmin, async (req, res) => {
   }
 });
 
-// Start server
+// ------------------- START SERVER -------------------
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
