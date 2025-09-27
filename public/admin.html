@@ -28,8 +28,11 @@
         showAlert('Secret cannot be empty', false);
         return;
       }
+
+      // ✅ Save the secret in session storage
       sessionStorage.setItem('ADMIN_SECRET', secret);
-      // Redirect to your dashboard page
+
+      // ✅ Redirect to admin dashboard
       window.location.href = 'admin-dashboard.html';
     });
 
