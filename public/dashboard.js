@@ -1,3 +1,8 @@
+// Redirect if no userId is saved (user not logged in)
+if (!localStorage.getItem('userId')) {
+  window.location.href = 'index.html';
+}
+
 const userId = localStorage.getItem('userId'); // Set on login
 const usernameSpan = document.getElementById('username');
 const cashSpan = document.getElementById('cash');
