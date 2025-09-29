@@ -1,36 +1,27 @@
 -- seed.sql
--- This file creates tables and inserts admin + demo users for your Trade Fair app.
+-- Fixed schema to match server.js
 
--- Enable pgcrypto for bcrypt password hashing
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- USERS table
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  is_admin BOOLEAN DEFAULT FALSE,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT DEFAULT 'user',
   cash NUMERIC(18,2) DEFAULT 0,
+  btc NUMERIC(18,8) DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- WALLETS table
-CREATE TABLE IF NOT EXISTS wallets (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  wallet_address TEXT,
-  provider TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- TRANSACTIONS table
-CREATE TABLE IF NOT EXISTS transactions (
+-- TRADES table
+CREATE TABLE IF NOT EXISTS trades (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
-  amount NUMERIC(18,2) NOT NULL,
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  amount NUMERIC(18,8) NOT NULL,
+  price NUMERIC(18,2) NOT NULL,
+  date TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 -- WITHDRAWALS table
@@ -40,25 +31,27 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   amount NUMERIC(18,2) NOT NULL,
   wallet TEXT,
   status TEXT DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  date TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 -- Admin user (password: AdminPass123!)
-INSERT INTO users (email, password_hash, is_admin, cash)
+INSERT INTO users (username, password, role, cash, btc)
 VALUES (
-  'admin@example.com',
+  'admin',
   crypt('AdminPass123!', gen_salt('bf')),
-  TRUE,
-  1000.00
+  'admin',
+  1000.00,
+  10.00
 )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT (username) DO NOTHING;
 
 -- Demo user (password: DemoPass123!)
-INSERT INTO users (email, password_hash, is_admin, cash)
+INSERT INTO users (username, password, role, cash, btc)
 VALUES (
-  'user@example.com',
+  'demo',
   crypt('DemoPass123!', gen_salt('bf')),
-  FALSE,
-  50.00
+  'user',
+  50.00,
+  0.50
 )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT (username) DO NOTHING;
