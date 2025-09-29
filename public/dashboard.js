@@ -20,8 +20,9 @@ const buyAlert = document.getElementById('buyAlert');
 const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
 
-// Default cash if none
+// Default values
 const DEFAULT_CASH = 50;
+const DEFAULT_USERNAME = 'User';
 
 // Fetch user portfolio and render everything
 async function fetchUserData() {
@@ -30,14 +31,24 @@ async function fetchUserData() {
     const data = await res.json();
 
     if (data.success) {
-      const user = data.portfolio.user;
+      let user = data.portfolio.user;
 
       // Set username
-      usernameSpan.textContent = user.username || 'User';
+      if (!user.username) {
+        user.username = DEFAULT_USERNAME;
+        await updateUsername(DEFAULT_USERNAME); // persist default username
+      }
+      usernameSpan.textContent = user.username;
 
-      // Set cash and BTC with default cash if empty
-      const cash = parseFloat(user.cash);
-      cashSpan.textContent = (isNaN(cash) ? DEFAULT_CASH : cash).toFixed(2);
+      // Set cash and persist default if empty
+      let cash = parseFloat(user.cash);
+      if (isNaN(cash) || cash <= 0) {
+        cash = DEFAULT_CASH;
+        await updateCash(DEFAULT_CASH); // persist default cash
+      }
+      cashSpan.textContent = cash.toFixed(2);
+
+      // Set BTC
       btcSpan.textContent = parseFloat(user.btc || 0).toFixed(6);
 
       // Render withdrawals & investments
@@ -46,6 +57,32 @@ async function fetchUserData() {
     }
   } catch (err) {
     console.error("Error fetching user data:", err);
+  }
+}
+
+// Persist default username to backend
+async function updateUsername(username) {
+  try {
+    await fetch('/user/update-username', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({userId, username})
+    });
+  } catch (err) {
+    console.error("Error updating username:", err);
+  }
+}
+
+// Persist default cash to backend
+async function updateCash(cash) {
+  try {
+    await fetch('/user/update-cash', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({userId, cash})
+    });
+  } catch (err) {
+    console.error("Error updating cash:", err);
   }
 }
 
