@@ -1,3 +1,7 @@
+/* =========================
+   TradeSphere Dashboard JS
+============================*/
+
 // Redirect if no userId is saved (user not logged in)
 const userId = localStorage.getItem('userId');
 if (!userId) {
@@ -16,17 +20,27 @@ const buyAlert = document.getElementById('buyAlert');
 const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
 
+// Default cash if none
+const DEFAULT_CASH = 50;
+
 // Fetch user portfolio and render everything
 async function fetchUserData() {
   try {
     const res = await fetch(`/user/${userId}/portfolio`);
     const data = await res.json();
+
     if (data.success) {
       const user = data.portfolio.user;
-      usernameSpan.textContent = user.username;
-      cashSpan.textContent = parseFloat(user.cash).toFixed(2);
-      btcSpan.textContent = parseFloat(user.btc).toFixed(6);
 
+      // Set username
+      usernameSpan.textContent = user.username || 'User';
+
+      // Set cash and BTC with default cash if empty
+      const cash = parseFloat(user.cash);
+      cashSpan.textContent = (isNaN(cash) ? DEFAULT_CASH : cash).toFixed(2);
+      btcSpan.textContent = parseFloat(user.btc || 0).toFixed(6);
+
+      // Render withdrawals & investments
       renderWithdrawals(data.portfolio.withdrawals || []);
       renderInvestments(data.portfolio.investments || []);
     }
@@ -38,6 +52,7 @@ async function fetchUserData() {
 // Render withdrawals table
 function renderWithdrawals(withdrawals = []) {
   withdrawalsTable.innerHTML = '';
+
   if (withdrawals.length > 0) {
     withdrawals.forEach(w => {
       const row = document.createElement('tr');
@@ -59,14 +74,15 @@ function renderWithdrawals(withdrawals = []) {
 // Render investments table
 function renderInvestments(investments = []) {
   investmentsTable.innerHTML = '';
+
   if (investments.length > 0) {
     investments.forEach(inv => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${inv.plan}</td>
         <td>${parseFloat(inv.amount).toFixed(2)}</td>
-        <td>${inv.status}</td>
-        <td>${new Date(inv.created_at).toLocaleString()}</td>
+        <td>${inv.status || 'Pending'}</td>
+        <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
       `;
       investmentsTable.appendChild(row);
     });
@@ -77,7 +93,7 @@ function renderInvestments(investments = []) {
   }
 }
 
-// Alert helper
+// Show alert helper
 function showAlert(element, message, isSuccess = true) {
   element.textContent = message;
   element.className = `alert ${isSuccess ? 'success' : 'error'}`;
@@ -151,13 +167,47 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
   }
 });
 
+// Top up cash
+async function topUpCash(amount) {
+  try {
+    const res = await fetch('/topup/cash', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({userId, amount})
+    });
+    const data = await res.json();
+    showAlert(buyAlert, data.message || `Cash topped up $${amount}`, data.success);
+    fetchUserData();
+  } catch (err) {
+    console.error("Top-up error:", err);
+    showAlert(buyAlert, 'Error topping up cash', false);
+  }
+}
+
+// Top up investment
+async function topUpInvestment(amount, plan) {
+  try {
+    const res = await fetch('/topup/investment', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({userId, amount, plan})
+    });
+    const data = await res.json();
+    showAlert(buyAlert, data.message || `Investment topped up $${amount}`, data.success);
+    fetchUserData();
+  } catch (err) {
+    console.error("Top-up investment error:", err);
+    showAlert(buyAlert, 'Error topping up investment', false);
+  }
+}
+
 // Initial fetch
 fetchUserData();
 
 // Auto-refresh every 5 seconds
 setInterval(fetchUserData, 5000);
 
-// Logout function (called from HTML button)
+// Logout
 function logout() {
   localStorage.removeItem('userId');
   window.location.href = 'index.html';
