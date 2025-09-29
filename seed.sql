@@ -1,5 +1,5 @@
 -- seed.sql
--- Fixed schema with investments + correct defaults
+-- Safe schema update (won’t delete existing data)
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   date TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- INVESTMENTS table
+-- INVESTMENTS table (new)
 CREATE TABLE IF NOT EXISTS investments (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -68,5 +68,7 @@ ON CONFLICT (username) DO NOTHING;
 
 -- Demo investment for demo user
 INSERT INTO investments (user_id, amount, plan, status)
-SELECT id, 25.00, 'Starter Plan', 'active' FROM users WHERE username='demo'
+SELECT id, 25.00, 'Starter Plan', 'active' 
+FROM users 
+WHERE username='demo'
 ON CONFLICT DO NOTHING;
