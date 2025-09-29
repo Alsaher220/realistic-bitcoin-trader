@@ -2,11 +2,9 @@
 // TradeSphere Dashboard JS
 // =========================
 
-// Redirect if no userId is saved (user not logged in)
 const userId = localStorage.getItem('userId');
 if (!userId) window.location.href = 'index.html';
 
-// DOM elements
 const usernameSpan = document.getElementById('username');
 const cashSpan = document.getElementById('cash');
 const btcSpan = document.getElementById('btc');
@@ -16,22 +14,21 @@ const buyAlert = document.getElementById('buyAlert');
 const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
 
-// Default starting cash
 const START_CASH = 50;
 
-// Fetch user data and render dashboard
+// Fetch user portfolio and render dashboard
 async function fetchUserData() {
   try {
-    const res = await fetch(`/user/${userId}`);
+    const res = await fetch(`/user/${userId}/portfolio`);
     const data = await res.json();
 
     if (data.success) {
-      const user = data.user;
+      const user = data.portfolio.user;
 
-      // Show username as entered at registration
+      // Username
       usernameSpan.textContent = user.username;
 
-      // Ensure cash shows at least $50
+      // Cash
       let cash = parseFloat(user.cash);
       if (isNaN(cash)) cash = START_CASH;
       cashSpan.textContent = cash.toFixed(2);
@@ -39,68 +36,52 @@ async function fetchUserData() {
       // BTC
       btcSpan.textContent = parseFloat(user.btc || 0).toFixed(6);
 
-      // Load withdrawals & investments
-      await fetchWithdrawals();
-      await fetchInvestments();
+      // Withdrawals & Investments
+      renderWithdrawals(data.portfolio.withdrawals || []);
+      renderInvestments(data.portfolio.investments || []);
     }
   } catch (err) {
-    console.error("Error fetching user data:", err);
+    console.error("Error fetching portfolio:", err);
   }
 }
 
-// Fetch and render withdrawals table
-async function fetchWithdrawals() {
-  try {
-    const res = await fetch(`/user/${userId}/withdrawals`);
-    const data = await res.json();
-    withdrawalsTable.innerHTML = '';
-
-    if (data.success && data.withdrawals.length) {
-      data.withdrawals.forEach(w => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${parseFloat(w.amount).toFixed(2)}</td>
-          <td>${w.wallet || '-'}</td>
-          <td>${w.status || 'Pending'}</td>
-          <td>${new Date(w.date || Date.now()).toLocaleString()}</td>
-        `;
-        withdrawalsTable.appendChild(row);
-      });
-    } else {
+function renderWithdrawals(withdrawals = []) {
+  withdrawalsTable.innerHTML = '';
+  if (withdrawals.length > 0) {
+    withdrawals.forEach(w => {
       const row = document.createElement('tr');
-      row.innerHTML = `<td colspan="4" style="text-align:center;">No withdrawals yet</td>`;
+      row.innerHTML = `
+        <td>${parseFloat(w.amount).toFixed(2)}</td>
+        <td>${w.wallet || '-'}</td>
+        <td>${w.status || 'Pending'}</td>
+        <td>${new Date(w.date || Date.now()).toLocaleString()}</td>
+      `;
       withdrawalsTable.appendChild(row);
-    }
-  } catch (err) {
-    console.error("Error fetching withdrawals:", err);
+    });
+  } else {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td colspan="4" style="text-align:center;">No withdrawals yet</td>`;
+    withdrawalsTable.appendChild(row);
   }
 }
 
-// Fetch and render investments table
-async function fetchInvestments() {
-  try {
-    const res = await fetch(`/user/${userId}/investments`);
-    const data = await res.json();
-    investmentsTable.innerHTML = '';
-
-    if (data.success && data.investments.length) {
-      data.investments.forEach(inv => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${inv.plan}</td>
-          <td>${parseFloat(inv.amount).toFixed(2)}</td>
-          <td>${inv.status || 'Pending'}</td>
-          <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
-        `;
-        investmentsTable.appendChild(row);
-      });
-    } else {
+function renderInvestments(investments = []) {
+  investmentsTable.innerHTML = '';
+  if (investments.length > 0) {
+    investments.forEach(inv => {
       const row = document.createElement('tr');
-      row.innerHTML = `<td colspan="4" style="text-align:center;">No investments yet</td>`;
+      row.innerHTML = `
+        <td>${inv.plan}</td>
+        <td>${parseFloat(inv.amount).toFixed(2)}</td>
+        <td>${inv.status || 'Pending'}</td>
+        <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
+      `;
       investmentsTable.appendChild(row);
-    }
-  } catch (err) {
-    console.error("Error fetching investments:", err);
+    });
+  } else {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td colspan="4" style="text-align:center;">No investments yet</td>`;
+    investmentsTable.appendChild(row);
   }
 }
 
@@ -117,7 +98,6 @@ document.getElementById('buyForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('buyAmount').value);
   const price = parseFloat(document.getElementById('buyPrice').value);
-
   try {
     const res = await fetch('/buy', {
       method: 'POST',
@@ -138,7 +118,6 @@ document.getElementById('sellForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('sellAmount').value);
   const price = parseFloat(document.getElementById('sellPrice').value);
-
   try {
     const res = await fetch('/sell', {
       method: 'POST',
@@ -159,7 +138,6 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('withdrawAmount').value);
   const wallet = document.getElementById('withdrawWallet').value;
-
   try {
     const res = await fetch('/withdraw', {
       method: 'POST',
