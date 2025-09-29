@@ -34,17 +34,17 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   date TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- INVESTMENTS table (new)
+-- INVESTMENTS table
 CREATE TABLE IF NOT EXISTS investments (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   amount NUMERIC(18,2) NOT NULL,
-  plan TEXT,
+  plan TEXT DEFAULT 'Starter Plan',
   status TEXT DEFAULT 'active',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Admin user (password: AdminPass123!)
+-- Admin user
 INSERT INTO users (username, password, role, cash, btc)
 VALUES (
   'admin',
@@ -55,7 +55,7 @@ VALUES (
 )
 ON CONFLICT (username) DO NOTHING;
 
--- Demo user (password: DemoPass123!)
+-- Demo user
 INSERT INTO users (username, password, role, cash, btc)
 VALUES (
   'demo',
