@@ -8,6 +8,7 @@ const usernameSpan = document.getElementById('username');
 const cashSpan = document.getElementById('cash');
 const btcSpan = document.getElementById('btc');
 const withdrawalsTable = document.querySelector('#withdrawalsTable tbody');
+const investmentsTable = document.querySelector('#investmentsTable tbody'); // Investments table
 
 // Alert elements
 const buyAlert = document.getElementById('buyAlert');
@@ -16,38 +17,55 @@ const withdrawAlert = document.getElementById('withdrawAlert');
 
 async function fetchUserData() {
   try {
-    const res = await fetch(`/user/${userId}`);
+    const res = await fetch(`/user/${userId}/portfolio`); // Portfolio endpoint
     const data = await res.json();
     if (data.success) {
-      usernameSpan.textContent = data.user.username;
-      cashSpan.textContent = parseFloat(data.user.cash).toFixed(2);
-      btcSpan.textContent = parseFloat(data.user.btc).toFixed(6);
-      loadWithdrawals();
+      const user = data.portfolio.user;
+      usernameSpan.textContent = user.username;
+      cashSpan.textContent = parseFloat(user.cash).toFixed(2);
+      btcSpan.textContent = parseFloat(user.btc).toFixed(6);
+
+      loadWithdrawals(data.portfolio.user.id, data.portfolio.trades, data.portfolio.investments);
     }
   } catch (err) {
     console.error("Error fetching user data:", err);
   }
 }
 
-async function loadWithdrawals() {
-  try {
-    const res = await fetch(`/user/${userId}/withdrawals`);
-    const data = await res.json();
-    withdrawalsTable.innerHTML = '';
-    if (data.success) {
-      data.withdrawals.forEach(w => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${parseFloat(w.amount).toFixed(2)}</td>
-          <td>${w.wallet}</td>
-          <td>${w.status}</td>
-          <td>${new Date(w.date).toLocaleString()}</td>
-        `;
-        withdrawalsTable.appendChild(row);
-      });
-    }
-  } catch (err) {
-    console.error("Error loading withdrawals:", err);
+function loadWithdrawals(userId, trades = [], investments = []) {
+  // Withdrawals table
+  withdrawalsTable.innerHTML = '';
+  fetch(`/user/${userId}/withdrawals`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        data.withdrawals.forEach(w => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${parseFloat(w.amount).toFixed(2)}</td>
+            <td>${w.wallet}</td>
+            <td>${w.status}</td>
+            <td>${new Date(w.date).toLocaleString()}</td>
+          `;
+          withdrawalsTable.appendChild(row);
+        });
+      }
+    })
+    .catch(err => console.error("Error loading withdrawals:", err));
+
+  // Investments table
+  if (investmentsTable) {
+    investmentsTable.innerHTML = '';
+    investments.forEach(inv => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${inv.plan}</td>
+        <td>${parseFloat(inv.amount).toFixed(2)}</td>
+        <td>${inv.status}</td>
+        <td>${new Date(inv.created_at).toLocaleString()}</td>
+      `;
+      investmentsTable.appendChild(row);
+    });
   }
 }
 
