@@ -10,22 +10,27 @@ const pool = new Pool({
 // Middleware to protect admin routes
 async function verifyAdmin(req, res, next) {
   try {
-    const userId = req.headers['x-user-id']; // Admin sends their user ID in headers
-    if (!userId) {
+    const userIdHeader = req.headers['x-user-id'];
+    if (!userIdHeader) {
       return res.status(403).json({ success: false, message: 'Unauthorized. Admin only.' });
+    }
+
+    const userId = parseInt(userIdHeader.toString().trim(), 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 
     const result = await pool.query('SELECT role FROM users WHERE id=$1', [userId]);
     const user = result.rows[0];
 
     if (user && user.role === 'admin') {
-      next(); // User is admin, proceed
+      return next(); // User is admin, proceed
     } else {
-      res.status(403).json({ success: false, message: 'Unauthorized. Admin only.' });
+      return res.status(403).json({ success: false, message: 'Unauthorized. Admin only.' });
     }
   } catch (err) {
     console.error('Admin auth error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 }
 
