@@ -152,4 +152,102 @@ app.post('/withdraw', async (req, res) => {
     if (!user) return res.json({ success: false, message: 'User not found' });
     if (user.cash < amount) return res.json({ success: false, message: 'Insufficient cash' });
 
-    await pool.query('UPDATE users SET cash = cash - $1 WHERE id=$
+    await pool.query('UPDATE users SET cash = cash - $1 WHERE id=$2', [amount, userId]);
+    await pool.query('INSERT INTO withdrawals (user_id, amount, wallet) VALUES ($1,$2,$3)', [userId, amount, wallet]);
+    res.json({ success: true, message: 'Withdrawal requested!' });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Withdrawal failed' });
+  }
+});
+
+// ------------------- ADMIN ROUTES ------------------- //
+
+// Get all users
+app.get('/admin/users', verifyAdmin, async (req, res) => {
+  const result = await pool.query('SELECT id, username, cash, btc, role FROM users ORDER BY id ASC');
+  res.json({ users: result.rows });
+});
+
+// Get all trades
+app.get('/admin/trades', verifyAdmin, async (req, res) => {
+  const result = await pool.query(
+    'SELECT trades.*, users.username FROM trades JOIN users ON trades.user_id=users.id ORDER BY date DESC'
+  );
+  res.json({ trades: result.rows });
+});
+
+// Get all investments
+app.get('/admin/investments', verifyAdmin, async (req, res) => {
+  const result = await pool.query(
+    'SELECT investments.*, users.username FROM investments JOIN users ON investments.user_id=users.id ORDER BY created_at DESC'
+  );
+  res.json({ investments: result.rows });
+});
+
+// Get all withdrawals
+app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
+  const result = await pool.query(
+    'SELECT withdrawals.*, users.username FROM withdrawals JOIN users ON withdrawals.user_id=users.id ORDER BY date DESC'
+  );
+  res.json({ withdrawals: result.rows });
+});
+
+// Process withdrawal
+app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
+  const { id } = req.body;
+  try {
+    await pool.query('UPDATE withdrawals SET status=$1 WHERE id=$2', ['processed', id]);
+    res.json({ success: true, message: 'Withdrawal processed' });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Failed to process withdrawal' });
+  }
+});
+
+// Admin Top-up cash or BTC
+app.post('/admin/topup', verifyAdmin, async (req, res) => {
+  const { userId, cash, btc } = req.body;
+  try {
+    await pool.query('UPDATE users SET cash = cash + $1, btc = btc + $2 WHERE id=$3', [cash || 0, btc || 0, userId]);
+    res.json({ success: true, message: 'User topped up successfully' });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Top-up failed' });
+  }
+});
+
+// Admin Top-up investment
+app.post('/admin/topup-investment', verifyAdmin, async (req, res) => {
+  const { userId, amount, plan } = req.body;
+  if (!userId || !amount || amount <= 0) return res.json({ success: false, message: 'User ID and valid amount required' });
+
+  try {
+    const userRes = await pool.query('SELECT id FROM users WHERE id=$1', [userId]);
+    if (!userRes.rows[0]) return res.json({ success: false, message: 'User not found' });
+
+    await pool.query(
+      'INSERT INTO investments (user_id, amount, plan, status) VALUES ($1, $2, $3, $4)',
+      [userId, amount, plan || 'Starter Plan', 'active']
+    );
+
+    res.json({ success: true, message: `Investment topped up with $${amount}` });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Failed to top up investment' });
+  }
+});
+
+// ------------------- DASHBOARD ROUTES ------------------- //
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'user-dashboard.html'));
+});
+
+app.get('/admin-dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+});
+
+// ------------------- START SERVER ------------------- //
+app.listen(port, () => {
+  console.log(`🚀 Broker server running on port ${port}`);
+});
