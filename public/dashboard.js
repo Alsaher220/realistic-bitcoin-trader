@@ -15,9 +15,10 @@ const buyAlert = document.getElementById('buyAlert');
 const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
 
+// Fetch user portfolio data
 async function fetchUserData() {
   try {
-    const res = await fetch(`/user/${userId}/portfolio`); // Portfolio endpoint
+    const res = await fetch(`/user/${userId}/portfolio`);
     const data = await res.json();
     if (data.success) {
       const user = data.portfolio.user;
@@ -25,37 +26,48 @@ async function fetchUserData() {
       cashSpan.textContent = parseFloat(user.cash).toFixed(2);
       btcSpan.textContent = parseFloat(user.btc).toFixed(6);
 
-      loadWithdrawals(data.portfolio.user.id, data.portfolio.trades, data.portfolio.investments);
+      loadWithdrawals(userId);
+      loadInvestments(data.portfolio.investments);
     }
   } catch (err) {
     console.error("Error fetching user data:", err);
   }
 }
 
-function loadWithdrawals(userId, trades = [], investments = []) {
-  // Withdrawals table
-  withdrawalsTable.innerHTML = '';
-  fetch(`/user/${userId}/withdrawals`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        data.withdrawals.forEach(w => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${parseFloat(w.amount).toFixed(2)}</td>
-            <td>${w.wallet}</td>
-            <td>${w.status}</td>
-            <td>${new Date(w.date).toLocaleString()}</td>
-          `;
-          withdrawalsTable.appendChild(row);
-        });
-      }
-    })
-    .catch(err => console.error("Error loading withdrawals:", err));
+// Load withdrawals
+async function loadWithdrawals(userId) {
+  try {
+    const res = await fetch(`/user/${userId}/withdrawals`);
+    const data = await res.json();
+    withdrawalsTable.innerHTML = '';
 
-  // Investments table
-  if (investmentsTable) {
-    investmentsTable.innerHTML = '';
+    if (data.success && data.withdrawals.length > 0) {
+      data.withdrawals.forEach(w => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${parseFloat(w.amount).toFixed(2)}</td>
+          <td>${w.wallet}</td>
+          <td>${w.status}</td>
+          <td>${new Date(w.date).toLocaleString()}</td>
+        `;
+        withdrawalsTable.appendChild(row);
+      });
+    } else {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td colspan="4" style="text-align:center;">No withdrawals yet</td>`;
+      withdrawalsTable.appendChild(row);
+    }
+  } catch (err) {
+    console.error("Error loading withdrawals:", err);
+  }
+}
+
+// Load investments
+function loadInvestments(investments = []) {
+  if (!investmentsTable) return;
+  investmentsTable.innerHTML = '';
+
+  if (investments.length > 0) {
     investments.forEach(inv => {
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -66,9 +78,14 @@ function loadWithdrawals(userId, trades = [], investments = []) {
       `;
       investmentsTable.appendChild(row);
     });
+  } else {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td colspan="4" style="text-align:center;">No investments yet</td>`;
+    investmentsTable.appendChild(row);
   }
 }
 
+// Alert helper
 function showAlert(element, message, isSuccess = true) {
   element.textContent = message;
   element.className = `alert ${isSuccess ? 'success' : 'error'}`;
@@ -147,3 +164,9 @@ fetchUserData();
 
 // Auto-refresh every 5 seconds
 setInterval(fetchUserData, 5000);
+
+// Logout
+function logout() {
+  localStorage.removeItem('userId');
+  window.location.href = 'index.html';
+}
