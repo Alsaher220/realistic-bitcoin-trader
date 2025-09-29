@@ -1,21 +1,22 @@
 // Redirect if no userId is saved (user not logged in)
-if (!localStorage.getItem('userId')) {
+const userId = localStorage.getItem('userId');
+if (!userId) {
   window.location.href = 'index.html';
 }
 
-const userId = localStorage.getItem('userId'); // Set on login
+// DOM elements
 const usernameSpan = document.getElementById('username');
 const cashSpan = document.getElementById('cash');
 const btcSpan = document.getElementById('btc');
 const withdrawalsTable = document.querySelector('#withdrawalsTable tbody');
-const investmentsTable = document.querySelector('#investmentsTable tbody'); // Investments table
+const investmentsTable = document.querySelector('#investmentsTable tbody');
 
 // Alert elements
 const buyAlert = document.getElementById('buyAlert');
 const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
 
-// Fetch user portfolio data
+// Fetch user portfolio and render everything
 async function fetchUserData() {
   try {
     const res = await fetch(`/user/${userId}/portfolio`);
@@ -26,47 +27,38 @@ async function fetchUserData() {
       cashSpan.textContent = parseFloat(user.cash).toFixed(2);
       btcSpan.textContent = parseFloat(user.btc).toFixed(6);
 
-      loadWithdrawals(userId);
-      loadInvestments(data.portfolio.investments);
+      renderWithdrawals(data.portfolio.withdrawals || []);
+      renderInvestments(data.portfolio.investments || []);
     }
   } catch (err) {
     console.error("Error fetching user data:", err);
   }
 }
 
-// Load withdrawals
-async function loadWithdrawals(userId) {
-  try {
-    const res = await fetch(`/user/${userId}/withdrawals`);
-    const data = await res.json();
-    withdrawalsTable.innerHTML = '';
-
-    if (data.success && data.withdrawals.length > 0) {
-      data.withdrawals.forEach(w => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${parseFloat(w.amount).toFixed(2)}</td>
-          <td>${w.wallet}</td>
-          <td>${w.status}</td>
-          <td>${new Date(w.date).toLocaleString()}</td>
-        `;
-        withdrawalsTable.appendChild(row);
-      });
-    } else {
+// Render withdrawals table
+function renderWithdrawals(withdrawals = []) {
+  withdrawalsTable.innerHTML = '';
+  if (withdrawals.length > 0) {
+    withdrawals.forEach(w => {
       const row = document.createElement('tr');
-      row.innerHTML = `<td colspan="4" style="text-align:center;">No withdrawals yet</td>`;
+      row.innerHTML = `
+        <td>${parseFloat(w.amount).toFixed(2)}</td>
+        <td>${w.wallet || '-'}</td>
+        <td>${w.status || 'Pending'}</td>
+        <td>${new Date(w.date || w.created_at || Date.now()).toLocaleString()}</td>
+      `;
       withdrawalsTable.appendChild(row);
-    }
-  } catch (err) {
-    console.error("Error loading withdrawals:", err);
+    });
+  } else {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td colspan="4" style="text-align:center;">No withdrawals yet</td>`;
+    withdrawalsTable.appendChild(row);
   }
 }
 
-// Load investments
-function loadInvestments(investments = []) {
-  if (!investmentsTable) return;
+// Render investments table
+function renderInvestments(investments = []) {
   investmentsTable.innerHTML = '';
-
   if (investments.length > 0) {
     investments.forEach(inv => {
       const row = document.createElement('tr');
@@ -165,7 +157,7 @@ fetchUserData();
 // Auto-refresh every 5 seconds
 setInterval(fetchUserData, 5000);
 
-// Logout
+// Logout function (called from HTML button)
 function logout() {
   localStorage.removeItem('userId');
   window.location.href = 'index.html';
