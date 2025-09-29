@@ -167,7 +167,7 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
   }
 });
 
-// Top up cash
+// Admin-only: Top up cash
 async function topUpCash(amount) {
   try {
     const res = await fetch('/topup/cash', {
@@ -184,7 +184,7 @@ async function topUpCash(amount) {
   }
 }
 
-// Top up investment
+// Admin-only: Top up investment
 async function topUpInvestment(amount, plan) {
   try {
     const res = await fetch('/topup/investment', {
