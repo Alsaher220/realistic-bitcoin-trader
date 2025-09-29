@@ -1,3 +1,4 @@
+// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -12,37 +13,37 @@ const port = process.env.PORT || 5000;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false } // Needed for Render Postgres
 });
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// ---------- ROOT ----------
+// ---------- ROOT TEST ----------
 app.get('/', (req, res) => {
-  res.send('📈 TradeSphere Broker API is live!');
+  res.send('TradeSphere Server is running!');
 });
 
-// ---------- USER ROUTES ---------- //
+// ------------------- USER ROUTES ------------------- //
 
 // Register
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.json({ success: false, message: 'All fields required' });
+  if (!username || !password)
+    return res.json({ success: false, message: 'All fields required' });
 
   try {
     const hashed = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      `INSERT INTO users (username, password, cash) 
-       VALUES ($1, $2, $3) 
-       RETURNING id, username, cash, btc`,
-      [username, hashed, 50]
+      'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, cash, btc',
+      [username, hashed]
     );
     res.json({ success: true, message: 'User registered!', user: result.rows[0] });
   } catch (err) {
-    if (err.code === '23505') res.json({ success: false, message: 'Username already exists' });
-    else {
+    if (err.code === '23505') {
+      res.json({ success: false, message: 'Username already exists' });
+    } else {
       console.error(err);
       res.json({ success: false, message: 'Registration failed' });
     }
@@ -74,54 +75,22 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Get portfolio
-app.get('/user/:id/portfolio', async (req, res) => {
+// Get user info
+app.get('/user/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const userRes = await pool.query('SELECT id, username, cash, btc FROM users WHERE id=$1', [id]);
-    const user = userRes.rows[0];
-    if (!user) return res.json({ success: false, message: 'User not found' });
-
-    // Ensure default cash & username
-    let updatedUser = { ...user };
-    if (!user.username) updatedUser.username = 'User';
-    if (!user.cash || user.cash <= 0) updatedUser.cash = 50;
-
-    const trades = await pool.query(
-      'SELECT type, amount, price, date FROM trades WHERE user_id=$1 ORDER BY date DESC',
-      [id]
-    );
-
-    const investments = await pool.query(
-      'SELECT plan, amount, status, created_at FROM investments WHERE user_id=$1 ORDER BY created_at DESC',
-      [id]
-    );
-
-    const withdrawals = await pool.query(
-      'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
-      [id]
-    );
-
-    res.json({
-      success: true,
-      portfolio: {
-        user: updatedUser,
-        trades: trades.rows,
-        investments: investments.rows,
-        withdrawals: withdrawals.rows
-      }
-    });
+    const result = await pool.query('SELECT id, username, cash, btc FROM users WHERE id=$1', [id]);
+    if (!result.rows[0]) return res.json({ success: false, message: 'User not found' });
+    res.json({ success: true, user: result.rows[0] });
   } catch (err) {
     console.error(err);
-    res.json({ success: false, message: 'Error fetching portfolio' });
+    res.json({ success: false, message: 'Error fetching user' });
   }
 });
 
 // Buy BTC
 app.post('/buy', async (req, res) => {
   const { userId, amount, price } = req.body;
-  if (!userId || !amount || !price) return res.json({ success: false, message: 'All fields required' });
-
   try {
     const cost = amount * price;
     const userRes = await pool.query('SELECT cash, btc FROM users WHERE id=$1', [userId]);
@@ -130,7 +99,12 @@ app.post('/buy', async (req, res) => {
     if (user.cash < cost) return res.json({ success: false, message: 'Insufficient cash' });
 
     await pool.query('UPDATE users SET cash = cash - $1, btc = btc + $2 WHERE id=$3', [cost, amount, userId]);
-    await pool.query('INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)', [userId, 'buy', amount, price]);
+    await pool.query('INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)', [
+      userId,
+      'buy',
+      amount,
+      price
+    ]);
     res.json({ success: true, message: 'BTC purchased!' });
   } catch (err) {
     console.error(err);
@@ -141,8 +115,6 @@ app.post('/buy', async (req, res) => {
 // Sell BTC
 app.post('/sell', async (req, res) => {
   const { userId, amount, price } = req.body;
-  if (!userId || !amount || !price) return res.json({ success: false, message: 'All fields required' });
-
   try {
     const userRes = await pool.query('SELECT btc, cash FROM users WHERE id=$1', [userId]);
     const user = userRes.rows[0];
@@ -151,7 +123,12 @@ app.post('/sell', async (req, res) => {
 
     const gain = amount * price;
     await pool.query('UPDATE users SET cash = cash + $1, btc = btc - $2 WHERE id=$3', [gain, amount, userId]);
-    await pool.query('INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)', [userId, 'sell', amount, price]);
+    await pool.query('INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)', [
+      userId,
+      'sell',
+      amount,
+      price
+    ]);
     res.json({ success: true, message: 'BTC sold!' });
   } catch (err) {
     console.error(err);
@@ -162,8 +139,6 @@ app.post('/sell', async (req, res) => {
 // Withdraw
 app.post('/withdraw', async (req, res) => {
   const { userId, amount, wallet } = req.body;
-  if (!userId || !amount || !wallet) return res.json({ success: false, message: 'All fields required' });
-
   try {
     const userRes = await pool.query('SELECT cash FROM users WHERE id=$1', [userId]);
     const user = userRes.rows[0];
@@ -171,7 +146,11 @@ app.post('/withdraw', async (req, res) => {
     if (user.cash < amount) return res.json({ success: false, message: 'Insufficient cash' });
 
     await pool.query('UPDATE users SET cash = cash - $1 WHERE id=$2', [amount, userId]);
-    await pool.query('INSERT INTO withdrawals (user_id, amount, wallet) VALUES ($1,$2,$3)', [userId, amount, wallet]);
+    await pool.query('INSERT INTO withdrawals (user_id, amount, wallet) VALUES ($1,$2,$3)', [
+      userId,
+      amount,
+      wallet
+    ]);
     res.json({ success: true, message: 'Withdrawal requested!' });
   } catch (err) {
     console.error(err);
@@ -179,13 +158,30 @@ app.post('/withdraw', async (req, res) => {
   }
 });
 
-// ---------- ADMIN ROUTES ---------- //
+// User withdrawals history
+app.get('/user/:id/withdrawals', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
+      [id]
+    );
+    res.json({ success: true, withdrawals: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Failed to load withdrawals' });
+  }
+});
 
+// ------------------- ADMIN ROUTES ------------------- //
+
+// Get all users
 app.get('/admin/users', verifyAdmin, async (req, res) => {
-  const result = await pool.query('SELECT id, username, cash, btc, role FROM users ORDER BY id ASC');
+  const result = await pool.query('SELECT id, username, cash, btc FROM users ORDER BY id ASC');
   res.json({ users: result.rows });
 });
 
+// Get all trades
 app.get('/admin/trades', verifyAdmin, async (req, res) => {
   const result = await pool.query(
     'SELECT trades.*, users.username FROM trades JOIN users ON trades.user_id=users.id ORDER BY date DESC'
@@ -193,13 +189,7 @@ app.get('/admin/trades', verifyAdmin, async (req, res) => {
   res.json({ trades: result.rows });
 });
 
-app.get('/admin/investments', verifyAdmin, async (req, res) => {
-  const result = await pool.query(
-    'SELECT investments.*, users.username FROM investments JOIN users ON investments.user_id=users.id ORDER BY created_at DESC'
-  );
-  res.json({ investments: result.rows });
-});
-
+// Get all withdrawals
 app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
   const result = await pool.query(
     'SELECT withdrawals.*, users.username FROM withdrawals JOIN users ON withdrawals.user_id=users.id ORDER BY date DESC'
@@ -207,10 +197,9 @@ app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
   res.json({ withdrawals: result.rows });
 });
 
+// Process withdrawal
 app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
   const { id } = req.body;
-  if (!id) return res.json({ success: false, message: 'Withdrawal ID required' });
-
   try {
     await pool.query('UPDATE withdrawals SET status=$1 WHERE id=$2', ['processed', id]);
     res.json({ success: true, message: 'Withdrawal processed' });
@@ -220,51 +209,31 @@ app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
   }
 });
 
+// Top-up user
 app.post('/admin/topup', verifyAdmin, async (req, res) => {
   const { userId, cash, btc } = req.body;
-  if ((!cash || cash < 0) && (!btc || btc < 0)) 
-    return res.json({ success: false, message: 'Provide valid cash or BTC amount' });
-
   try {
-    await pool.query('UPDATE users SET cash = cash + $1, btc = btc + $2 WHERE id=$3', [cash || 0, btc || 0, userId]);
-    const updatedUser = await pool.query('SELECT id, username, cash, btc FROM users WHERE id=$1', [userId]);
-    res.json({ success: true, message: 'User topped up successfully', user: updatedUser.rows[0] });
+    await pool.query('UPDATE users SET cash = cash + $1, btc = btc + $2 WHERE id=$3', [cash, btc, userId]);
+    res.json({ success: true, message: 'User topped up' });
   } catch (err) {
     console.error(err);
     res.json({ success: false, message: 'Top-up failed' });
   }
 });
 
-app.post('/admin/topup-investment', verifyAdmin, async (req, res) => {
-  const { userId, amount, plan } = req.body;
-  if (!userId || !amount || amount <= 0) return res.json({ success: false, message: 'User ID and valid amount required' });
+// ------------------- DASHBOARD ROUTES ------------------- //
 
-  try {
-    const userRes = await pool.query('SELECT id FROM users WHERE id=$1', [userId]);
-    if (!userRes.rows[0]) return res.json({ success: false, message: 'User not found' });
-
-    const insertRes = await pool.query(
-      'INSERT INTO investments (user_id, amount, plan, status) VALUES ($1, $2, $3, $4) RETURNING *',
-      [userId, amount, plan || 'Starter Plan', 'active']
-    );
-
-    res.json({ success: true, message: `Investment topped up with $${amount}`, investment: insertRes.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.json({ success: false, message: 'Failed to top up investment' });
-  }
-});
-
-// ---------- DASHBOARD ROUTES ---------- //
+// Serve user dashboard
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+  res.sendFile(path.join(__dirname, 'public', 'user-dashboard.html'));
 });
 
+// Serve admin dashboard
 app.get('/admin-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-// ---------- START SERVER ----------
+// ------------------- START SERVER -------------------
 app.listen(port, () => {
-  console.log(`🚀 Broker server running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
