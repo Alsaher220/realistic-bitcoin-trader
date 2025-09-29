@@ -38,7 +38,7 @@ app.post('/register', async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (username, password, cash) 
        VALUES ($1, $2, $3) 
-       RETURNING id, username, cash, btc`,
+       RETURNING id, username, cash, btc, role`,
       [username, hashed, 50] // Start with $50
     );
     res.json({ success: true, message: 'User registered!', user: result.rows[0] });
@@ -90,7 +90,7 @@ app.get('/user/:id/portfolio', async (req, res) => {
     );
 
     const investments = await pool.query(
-      'SELECT plan, amount, start_date, status FROM investments WHERE user_id=$1 ORDER BY start_date DESC',
+      'SELECT plan, amount, created_at, status FROM investments WHERE user_id=$1 ORDER BY created_at DESC',
       [id]
     );
 
@@ -174,7 +174,7 @@ app.post('/withdraw', async (req, res) => {
 
 // Get all users
 app.get('/admin/users', verifyAdmin, async (req, res) => {
-  const result = await pool.query('SELECT id, username, cash, btc FROM users ORDER BY id ASC');
+  const result = await pool.query('SELECT id, username, cash, btc, role FROM users ORDER BY id ASC');
   res.json({ users: result.rows });
 });
 
@@ -189,7 +189,7 @@ app.get('/admin/trades', verifyAdmin, async (req, res) => {
 // Get all investments
 app.get('/admin/investments', verifyAdmin, async (req, res) => {
   const result = await pool.query(
-    'SELECT investments.*, users.username FROM investments JOIN users ON investments.user_id=users.id ORDER BY start_date DESC'
+    'SELECT investments.*, users.username FROM investments JOIN users ON investments.user_id=users.id ORDER BY created_at DESC'
   );
   res.json({ investments: result.rows });
 });
@@ -227,7 +227,6 @@ app.post('/admin/topup', verifyAdmin, async (req, res) => {
 });
 
 // ------------------- DASHBOARD ROUTES ------------------- //
-
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'user-dashboard.html'));
 });
