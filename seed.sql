@@ -1,5 +1,5 @@
 -- seed.sql
--- Fixed schema to match server.js
+-- Fixed schema with investments + correct defaults
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
   role TEXT DEFAULT 'user',
-  cash NUMERIC(18,2) DEFAULT 0,
+  cash NUMERIC(18,2) DEFAULT 50,  -- every new user starts with $50
   btc NUMERIC(18,8) DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
@@ -32,6 +32,16 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   wallet TEXT,
   status TEXT DEFAULT 'pending',
   date TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- INVESTMENTS table
+CREATE TABLE IF NOT EXISTS investments (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount NUMERIC(18,2) NOT NULL,
+  plan TEXT,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 -- Admin user (password: AdminPass123!)
