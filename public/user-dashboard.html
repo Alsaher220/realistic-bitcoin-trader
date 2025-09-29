@@ -9,66 +9,82 @@
 </head>
 <body>
   <header>
-    <img src="B10CD185-B0B2-4ACF-9906-CF907D46B9D6.png" alt="TradeSphere Logo">
+    <img src="B10CD185-B0B2-4ACF-9906-CF907D46B9D6.png" alt="TradeSphere Logo" class="logo">
     <h1>TradeSphere</h1>
     <button onclick="logout()">Logout</button>
   </header>
 
   <div class="container">
-    <h2>Account Info</h2>
-    <p>Username: <span id="username"></span></p>
-    <p>Cash: $<span id="cash"></span></p>
-    <p>BTC: <span id="btc"></span> BTC</p>
+    <section class="account-info card">
+      <h2>Account Info</h2>
+      <p>Username: <span id="username">Loading...</span></p>
+      <p>Cash: $<span id="cash">0.00</span></p>
+      <p>BTC: <span id="btc">0.000000</span> BTC</p>
+    </section>
 
-    <h2>Withdrawals</h2>
-    <table id="withdrawalsTable">
-      <thead>
-        <tr>
-          <th>Amount</th>
-          <th>Wallet</th>
-          <th>Status</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <section class="withdrawals card">
+      <h2>Withdrawals</h2>
+      <table id="withdrawalsTable">
+        <thead>
+          <tr>
+            <th>Amount</th>
+            <th>Wallet</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </section>
 
-    <h2>Investments</h2>
-    <table id="investmentsTable">
-      <thead>
-        <tr>
-          <th>Plan</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <section class="investments card">
+      <h2>Investments</h2>
+      <table id="investmentsTable">
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </section>
 
-    <h2>Buy BTC</h2>
-    <form id="buyForm">
-      <input type="number" id="buyAmount" placeholder="Amount" required>
-      <input type="number" id="buyPrice" placeholder="Price" required>
-      <button type="submit">Buy</button>
-    </form>
-    <div id="buyAlert" class="alert" style="display:none;"></div>
+    <section class="buy-btc card">
+      <h2>Buy BTC</h2>
+      <form id="buyForm">
+        <input type="number" id="buyAmount" placeholder="Amount" required>
+        <input type="number" id="buyPrice" placeholder="Price" required>
+        <button type="submit">Buy</button>
+      </form>
+      <div id="buyAlert" class="alert"></div>
+    </section>
 
-    <h2>Sell BTC</h2>
-    <form id="sellForm">
-      <input type="number" id="sellAmount" placeholder="Amount" required>
-      <input type="number" id="sellPrice" placeholder="Price" required>
-      <button type="submit">Sell</button>
-    </form>
-    <div id="sellAlert" class="alert" style="display:none;"></div>
+    <section class="sell-btc card">
+      <h2>Sell BTC</h2>
+      <form id="sellForm">
+        <input type="number" id="sellAmount" placeholder="Amount" required>
+        <input type="number" id="sellPrice" placeholder="Price" required>
+        <button type="submit">Sell</button>
+      </form>
+      <div id="sellAlert" class="alert"></div>
+    </section>
 
-    <h2>Withdraw</h2>
-    <form id="withdrawForm">
-      <input type="number" id="withdrawAmount" placeholder="Amount" required>
-      <input type="text" id="withdrawWallet" placeholder="Wallet Address" required>
-      <button type="submit">Withdraw</button>
-    </form>
-    <div id="withdrawAlert" class="alert" style="display:none;"></div>
+    <section class="withdraw card">
+      <h2>Withdraw</h2>
+      <form id="withdrawForm">
+        <input type="number" id="withdrawAmount" placeholder="Amount" required>
+        <input type="text" id="withdrawWallet" placeholder="Wallet Address" required>
+        <button type="submit">Withdraw</button>
+      </form>
+      <div id="withdrawAlert" class="alert"></div>
+    </section>
   </div>
 
   <footer>
