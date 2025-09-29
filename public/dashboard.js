@@ -1,12 +1,10 @@
-/* =========================
-   TradeSphere Dashboard JS
-============================*/
+// =========================
+// TradeSphere Dashboard JS
+// =========================
 
 // Redirect if no userId is saved (user not logged in)
 const userId = localStorage.getItem('userId');
-if (!userId) {
-  window.location.href = 'index.html';
-}
+if (!userId) window.location.href = 'index.html';
 
 // DOM elements
 const usernameSpan = document.getElementById('username');
@@ -14,128 +12,104 @@ const cashSpan = document.getElementById('cash');
 const btcSpan = document.getElementById('btc');
 const withdrawalsTable = document.querySelector('#withdrawalsTable tbody');
 const investmentsTable = document.querySelector('#investmentsTable tbody');
-
-// Alert elements
 const buyAlert = document.getElementById('buyAlert');
 const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
 
-// Default values
-const DEFAULT_CASH = 50;
-const DEFAULT_USERNAME = 'User';
+// Default starting cash
+const START_CASH = 50;
 
-// Fetch user portfolio and render everything
+// Fetch user data and render dashboard
 async function fetchUserData() {
   try {
-    const res = await fetch(`/user/${userId}/portfolio`);
+    const res = await fetch(`/user/${userId}`);
     const data = await res.json();
 
     if (data.success) {
-      let user = data.portfolio.user;
+      const user = data.user;
 
-      // Set username
-      if (!user.username) {
-        user.username = DEFAULT_USERNAME;
-        await updateUsername(DEFAULT_USERNAME); // persist default username
-      }
+      // Show username as entered at registration
       usernameSpan.textContent = user.username;
 
-      // Set cash and persist default if empty
+      // Ensure cash shows at least $50
       let cash = parseFloat(user.cash);
-      if (isNaN(cash) || cash <= 0) {
-        cash = DEFAULT_CASH;
-        await updateCash(DEFAULT_CASH); // persist default cash
-      }
+      if (isNaN(cash)) cash = START_CASH;
       cashSpan.textContent = cash.toFixed(2);
 
-      // Set BTC
+      // BTC
       btcSpan.textContent = parseFloat(user.btc || 0).toFixed(6);
 
-      // Render withdrawals & investments
-      renderWithdrawals(data.portfolio.withdrawals || []);
-      renderInvestments(data.portfolio.investments || []);
+      // Load withdrawals & investments
+      await fetchWithdrawals();
+      await fetchInvestments();
     }
   } catch (err) {
     console.error("Error fetching user data:", err);
   }
 }
 
-// Persist default username to backend
-async function updateUsername(username) {
+// Fetch and render withdrawals table
+async function fetchWithdrawals() {
   try {
-    await fetch('/user/update-username', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({userId, username})
-    });
-  } catch (err) {
-    console.error("Error updating username:", err);
-  }
-}
+    const res = await fetch(`/user/${userId}/withdrawals`);
+    const data = await res.json();
+    withdrawalsTable.innerHTML = '';
 
-// Persist default cash to backend
-async function updateCash(cash) {
-  try {
-    await fetch('/user/update-cash', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({userId, cash})
-    });
-  } catch (err) {
-    console.error("Error updating cash:", err);
-  }
-}
-
-// Render withdrawals table
-function renderWithdrawals(withdrawals = []) {
-  withdrawalsTable.innerHTML = '';
-
-  if (withdrawals.length > 0) {
-    withdrawals.forEach(w => {
+    if (data.success && data.withdrawals.length) {
+      data.withdrawals.forEach(w => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${parseFloat(w.amount).toFixed(2)}</td>
+          <td>${w.wallet || '-'}</td>
+          <td>${w.status || 'Pending'}</td>
+          <td>${new Date(w.date || Date.now()).toLocaleString()}</td>
+        `;
+        withdrawalsTable.appendChild(row);
+      });
+    } else {
       const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${parseFloat(w.amount).toFixed(2)}</td>
-        <td>${w.wallet || '-'}</td>
-        <td>${w.status || 'Pending'}</td>
-        <td>${new Date(w.date || w.created_at || Date.now()).toLocaleString()}</td>
-      `;
+      row.innerHTML = `<td colspan="4" style="text-align:center;">No withdrawals yet</td>`;
       withdrawalsTable.appendChild(row);
-    });
-  } else {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td colspan="4" style="text-align:center;">No withdrawals yet</td>`;
-    withdrawalsTable.appendChild(row);
+    }
+  } catch (err) {
+    console.error("Error fetching withdrawals:", err);
   }
 }
 
-// Render investments table
-function renderInvestments(investments = []) {
-  investmentsTable.innerHTML = '';
+// Fetch and render investments table
+async function fetchInvestments() {
+  try {
+    const res = await fetch(`/user/${userId}/investments`);
+    const data = await res.json();
+    investmentsTable.innerHTML = '';
 
-  if (investments.length > 0) {
-    investments.forEach(inv => {
+    if (data.success && data.investments.length) {
+      data.investments.forEach(inv => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${inv.plan}</td>
+          <td>${parseFloat(inv.amount).toFixed(2)}</td>
+          <td>${inv.status || 'Pending'}</td>
+          <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
+        `;
+        investmentsTable.appendChild(row);
+      });
+    } else {
       const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${inv.plan}</td>
-        <td>${parseFloat(inv.amount).toFixed(2)}</td>
-        <td>${inv.status || 'Pending'}</td>
-        <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
-      `;
+      row.innerHTML = `<td colspan="4" style="text-align:center;">No investments yet</td>`;
       investmentsTable.appendChild(row);
-    });
-  } else {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td colspan="4" style="text-align:center;">No investments yet</td>`;
-    investmentsTable.appendChild(row);
+    }
+  } catch (err) {
+    console.error("Error fetching investments:", err);
   }
 }
 
 // Show alert helper
-function showAlert(element, message, isSuccess = true) {
-  element.textContent = message;
-  element.className = `alert ${isSuccess ? 'success' : 'error'}`;
-  element.style.display = 'block';
-  setTimeout(() => { element.style.display = 'none'; }, 3000);
+function showAlert(el, msg, isSuccess = true) {
+  el.textContent = msg;
+  el.className = `alert ${isSuccess ? 'success' : 'error'}`;
+  el.style.display = 'block';
+  setTimeout(() => (el.style.display = 'none'), 3000);
 }
 
 // Buy BTC
@@ -147,15 +121,14 @@ document.getElementById('buyForm').addEventListener('submit', async e => {
   try {
     const res = await fetch('/buy', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({userId, amount, price})
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, amount, price })
     });
     const data = await res.json();
     showAlert(buyAlert, data.message || 'BTC purchased!', data.success);
     fetchUserData();
     e.target.reset();
   } catch (err) {
-    console.error("Buy error:", err);
     showAlert(buyAlert, 'Error purchasing BTC', false);
   }
 });
@@ -169,15 +142,14 @@ document.getElementById('sellForm').addEventListener('submit', async e => {
   try {
     const res = await fetch('/sell', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({userId, amount, price})
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, amount, price })
     });
     const data = await res.json();
     showAlert(sellAlert, data.message || 'BTC sold!', data.success);
     fetchUserData();
     e.target.reset();
   } catch (err) {
-    console.error("Sell error:", err);
     showAlert(sellAlert, 'Error selling BTC', false);
   }
 });
@@ -191,57 +163,20 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
   try {
     const res = await fetch('/withdraw', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({userId, amount, wallet})
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, amount, wallet })
     });
     const data = await res.json();
     showAlert(withdrawAlert, data.message, data.success);
     fetchUserData();
     e.target.reset();
   } catch (err) {
-    console.error("Withdraw error:", err);
     showAlert(withdrawAlert, 'Error requesting withdrawal', false);
   }
 });
 
-// Admin-only: Top up cash
-async function topUpCash(amount) {
-  try {
-    const res = await fetch('/topup/cash', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({userId, amount})
-    });
-    const data = await res.json();
-    showAlert(buyAlert, data.message || `Cash topped up $${amount}`, data.success);
-    fetchUserData();
-  } catch (err) {
-    console.error("Top-up error:", err);
-    showAlert(buyAlert, 'Error topping up cash', false);
-  }
-}
-
-// Admin-only: Top up investment
-async function topUpInvestment(amount, plan) {
-  try {
-    const res = await fetch('/topup/investment', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({userId, amount, plan})
-    });
-    const data = await res.json();
-    showAlert(buyAlert, data.message || `Investment topped up $${amount}`, data.success);
-    fetchUserData();
-  } catch (err) {
-    console.error("Top-up investment error:", err);
-    showAlert(buyAlert, 'Error topping up investment', false);
-  }
-}
-
-// Initial fetch
+// Initial fetch + auto-refresh
 fetchUserData();
-
-// Auto-refresh every 5 seconds
 setInterval(fetchUserData, 5000);
 
 // Logout
