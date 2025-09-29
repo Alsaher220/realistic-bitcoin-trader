@@ -35,9 +35,14 @@ app.post('/register', async (req, res) => {
 
   try {
     const hashed = await bcrypt.hash(password, 10);
+
+    // Set default cash and BTC
+    const defaultCash = 50;
+    const defaultBTC = 0;
+
     const result = await pool.query(
-      'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username, cash, btc',
-      [username, hashed]
+      'INSERT INTO users (username, password, cash, btc) VALUES ($1, $2, $3, $4) RETURNING id, username, cash, btc',
+      [username, hashed, defaultCash, defaultBTC]
     );
     res.json({ success: true, message: 'User registered!', user: result.rows[0] });
   } catch (err) {
@@ -75,16 +80,41 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Get user info
-app.get('/user/:id', async (req, res) => {
+// Get user portfolio
+app.get('/user/:id/portfolio', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('SELECT id, username, cash, btc FROM users WHERE id=$1', [id]);
-    if (!result.rows[0]) return res.json({ success: false, message: 'User not found' });
-    res.json({ success: true, user: result.rows[0] });
+    const userRes = await pool.query('SELECT id, username, cash, btc FROM users WHERE id=$1', [id]);
+    const user = userRes.rows[0];
+    if (!user) return res.json({ success: false, message: 'User not found' });
+
+    const tradesRes = await pool.query(
+      'SELECT type, amount, price, date FROM trades WHERE user_id=$1 ORDER BY date DESC',
+      [id]
+    );
+
+    const withdrawalsRes = await pool.query(
+      'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
+      [id]
+    );
+
+    const investmentsRes = await pool.query(
+      'SELECT plan, amount, status, created_at FROM investments WHERE user_id=$1 ORDER BY created_at DESC',
+      [id]
+    );
+
+    res.json({
+      success: true,
+      portfolio: {
+        user,
+        trades: tradesRes.rows,
+        withdrawals: withdrawalsRes.rows,
+        investments: investmentsRes.rows
+      }
+    });
   } catch (err) {
     console.error(err);
-    res.json({ success: false, message: 'Error fetching user' });
+    res.json({ success: false, message: 'Error fetching portfolio' });
   }
 });
 
@@ -158,30 +188,13 @@ app.post('/withdraw', async (req, res) => {
   }
 });
 
-// User withdrawals history
-app.get('/user/:id/withdrawals', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await pool.query(
-      'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
-      [id]
-    );
-    res.json({ success: true, withdrawals: result.rows });
-  } catch (err) {
-    console.error(err);
-    res.json({ success: false, message: 'Failed to load withdrawals' });
-  }
-});
-
 // ------------------- ADMIN ROUTES ------------------- //
 
-// Get all users
 app.get('/admin/users', verifyAdmin, async (req, res) => {
   const result = await pool.query('SELECT id, username, cash, btc FROM users ORDER BY id ASC');
   res.json({ users: result.rows });
 });
 
-// Get all trades
 app.get('/admin/trades', verifyAdmin, async (req, res) => {
   const result = await pool.query(
     'SELECT trades.*, users.username FROM trades JOIN users ON trades.user_id=users.id ORDER BY date DESC'
@@ -189,7 +202,6 @@ app.get('/admin/trades', verifyAdmin, async (req, res) => {
   res.json({ trades: result.rows });
 });
 
-// Get all withdrawals
 app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
   const result = await pool.query(
     'SELECT withdrawals.*, users.username FROM withdrawals JOIN users ON withdrawals.user_id=users.id ORDER BY date DESC'
@@ -197,7 +209,6 @@ app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
   res.json({ withdrawals: result.rows });
 });
 
-// Process withdrawal
 app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
   const { id } = req.body;
   try {
@@ -209,7 +220,6 @@ app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
   }
 });
 
-// Top-up user
 app.post('/admin/topup', verifyAdmin, async (req, res) => {
   const { userId, cash, btc } = req.body;
   try {
@@ -221,14 +231,12 @@ app.post('/admin/topup', verifyAdmin, async (req, res) => {
   }
 });
 
-// ------------------- DASHBOARD ROUTES ------------------- //
+// ------------------- DASHBOARD ROUTES -------------------
 
-// Serve user dashboard
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'user-dashboard.html'));
 });
 
-// Serve admin dashboard
 app.get('/admin-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
