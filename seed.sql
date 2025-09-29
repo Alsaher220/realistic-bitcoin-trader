@@ -65,3 +65,8 @@ VALUES (
   0.50
 )
 ON CONFLICT (username) DO NOTHING;
+
+-- Demo investment for demo user
+INSERT INTO investments (user_id, amount, plan, status)
+SELECT id, 25.00, 'Starter Plan', 'active' FROM users WHERE username='demo'
+ON CONFLICT DO NOTHING;
