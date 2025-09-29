@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -13,7 +12,7 @@ const port = process.env.PORT || 5000;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // Needed for Render Postgres
+  ssl: { rejectUnauthorized: false }
 });
 
 app.use(cors());
@@ -79,8 +78,14 @@ app.post('/login', async (req, res) => {
 app.get('/user/:id/portfolio', async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await pool.query('SELECT id, username, cash, btc FROM users WHERE id=$1', [id]);
-    if (!user.rows[0]) return res.json({ success: false, message: 'User not found' });
+    const userRes = await pool.query('SELECT id, username, cash, btc FROM users WHERE id=$1', [id]);
+    const user = userRes.rows[0];
+    if (!user) return res.json({ success: false, message: 'User not found' });
+
+    // Ensure default cash & username
+    let updatedUser = { ...user };
+    if (!user.username) updatedUser.username = 'User';
+    if (!user.cash || user.cash <= 0) updatedUser.cash = 50;
 
     const trades = await pool.query(
       'SELECT type, amount, price, date FROM trades WHERE user_id=$1 ORDER BY date DESC',
@@ -100,7 +105,7 @@ app.get('/user/:id/portfolio', async (req, res) => {
     res.json({
       success: true,
       portfolio: {
-        user: user.rows[0],
+        user: updatedUser,
         trades: trades.rows,
         investments: investments.rows,
         withdrawals: withdrawals.rows
@@ -174,13 +179,13 @@ app.post('/withdraw', async (req, res) => {
   }
 });
 
-// Admin-only: Get all users
+// ---------- ADMIN ROUTES ---------- //
+
 app.get('/admin/users', verifyAdmin, async (req, res) => {
   const result = await pool.query('SELECT id, username, cash, btc, role FROM users ORDER BY id ASC');
   res.json({ users: result.rows });
 });
 
-// Admin-only: Get all trades
 app.get('/admin/trades', verifyAdmin, async (req, res) => {
   const result = await pool.query(
     'SELECT trades.*, users.username FROM trades JOIN users ON trades.user_id=users.id ORDER BY date DESC'
@@ -188,7 +193,6 @@ app.get('/admin/trades', verifyAdmin, async (req, res) => {
   res.json({ trades: result.rows });
 });
 
-// Admin-only: Get all investments
 app.get('/admin/investments', verifyAdmin, async (req, res) => {
   const result = await pool.query(
     'SELECT investments.*, users.username FROM investments JOIN users ON investments.user_id=users.id ORDER BY created_at DESC'
@@ -196,7 +200,6 @@ app.get('/admin/investments', verifyAdmin, async (req, res) => {
   res.json({ investments: result.rows });
 });
 
-// Admin-only: Get all withdrawals
 app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
   const result = await pool.query(
     'SELECT withdrawals.*, users.username FROM withdrawals JOIN users ON withdrawals.user_id=users.id ORDER BY date DESC'
@@ -204,7 +207,6 @@ app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
   res.json({ withdrawals: result.rows });
 });
 
-// Admin-only: Process withdrawal
 app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
   const { id } = req.body;
   if (!id) return res.json({ success: false, message: 'Withdrawal ID required' });
@@ -218,7 +220,6 @@ app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin Top-up cash or BTC
 app.post('/admin/topup', verifyAdmin, async (req, res) => {
   const { userId, cash, btc } = req.body;
   if ((!cash || cash < 0) && (!btc || btc < 0)) 
@@ -234,7 +235,6 @@ app.post('/admin/topup', verifyAdmin, async (req, res) => {
   }
 });
 
-// Admin Top-up investment
 app.post('/admin/topup-investment', verifyAdmin, async (req, res) => {
   const { userId, amount, plan } = req.body;
   if (!userId || !amount || amount <= 0) return res.json({ success: false, message: 'User ID and valid amount required' });
@@ -255,7 +255,7 @@ app.post('/admin/topup-investment', verifyAdmin, async (req, res) => {
   }
 });
 
-// ------------------- DASHBOARD ROUTES ------------------- //
+// ---------- DASHBOARD ROUTES ---------- //
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
@@ -264,7 +264,7 @@ app.get('/admin-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
 
-// ------------------- START SERVER ------------------- //
+// ---------- START SERVER ----------
 app.listen(port, () => {
   console.log(`🚀 Broker server running on port ${port}`);
 });
