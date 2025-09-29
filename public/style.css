@@ -1,8 +1,8 @@
 /* =======================
-   TradeSphere Style Sheet
+   TradeSphere Dashboard CSS
 ========================== */
 
-/* Reset default margins/padding */
+/* Reset & Base */
 * {
     margin: 0;
     padding: 0;
@@ -10,50 +10,76 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Body & Background */
 body {
-    background: url('images/bg.png') no-repeat center center fixed; /* Updated for PNG image */
+    background: url('images/bg.png') no-repeat center center fixed;
     background-size: cover;
     color: #f0f0f0;
     min-height: 100vh;
+    line-height: 1.5;
 }
 
-/* Header / Logo */
+/* Header */
 header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 20px 50px;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.75);
     border-bottom: 2px solid #FFD700;
+    position: relative;
+    z-index: 10;
 }
 
-header img.logo {
-    height: 60px; /* Logo size */
+header img {
+    height: 60px;
 }
 
 header h1 {
     font-size: 2rem;
-    color: #FFD700; /* Goldish color for TradeSphere title */
+    color: #FFD700;
+}
+
+header button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #1E90FF;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+header button:hover {
+    background-color: #00BFFF;
 }
 
 /* Container */
 .container {
     width: 90%;
     max-width: 1200px;
-    margin: 40px auto;
-    padding: 20px;
-    background-color: rgba(0,0,0,0.6);
+    margin: 60px auto 100px auto;
+    padding: 30px;
+    background-color: rgba(0, 0, 0, 0.65);
     border-radius: 15px;
     box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+
+/* Headings */
+.container h2 {
+    color: #FFD700;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
 }
 
 /* Forms */
 form {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
 }
 
 input, select {
@@ -61,8 +87,9 @@ input, select {
     border-radius: 5px;
     border: none;
     font-size: 1rem;
-    background-color: rgba(255,255,255,0.2);
+    background-color: rgba(255,255,255,0.15);
     color: #fff;
+    flex: 1 1 200px;
 }
 
 input::placeholder {
@@ -71,8 +98,8 @@ input::placeholder {
 
 /* Buttons */
 button {
-    padding: 10px 20px;
-    background-color: #1E90FF; /* DodgerBlue */
+    padding: 10px 25px;
+    background-color: #1E90FF;
     border: none;
     border-radius: 5px;
     color: #fff;
@@ -82,14 +109,15 @@ button {
 }
 
 button:hover {
-    background-color: #00BFFF; /* DeepSkyBlue */
+    background-color: #00BFFF;
 }
 
 /* Tables */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: 15px;
+    font-size: 1rem;
 }
 
 table th, table td {
@@ -97,24 +125,25 @@ table th, table td {
     text-align: left;
     border-bottom: 1px solid #555;
     background-color: rgba(0,0,0,0.4);
+    color: #fff;
 }
 
 table th {
-    background-color: #333;
+    background-color: rgba(0,0,0,0.7);
     color: #FFD700;
 }
 
 table tr:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Alerts / Messages */
+/* Alerts */
 .alert {
-    padding: 10px 15px;
+    padding: 12px 15px;
     border-radius: 5px;
     margin-bottom: 15px;
     font-weight: bold;
-    display: none; /* hidden by default until triggered */
+    display: none;
 }
 
 .alert.success {
@@ -128,7 +157,7 @@ table tr:hover {
 }
 
 .alert.info {
-    background-color: #17a2b8; /* Teal/blue info alert */
+    background-color: #17a2b8;
     color: #fff;
 }
 
@@ -136,19 +165,20 @@ table tr:hover {
 footer {
     text-align: center;
     padding: 20px;
-    background-color: rgba(0,0,0,0.7);
+    background-color: rgba(0,0,0,0.75);
     position: fixed;
     width: 100%;
     bottom: 0;
     color: #ccc;
+    border-top: 2px solid #FFD700;
 }
 
-/* Dashboard Cards */
+/* Cards (optional for extra sections) */
 .card {
     background-color: rgba(0,0,0,0.5);
     border-radius: 10px;
     padding: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     box-shadow: 0 0 15px rgba(0,0,0,0.6);
 }
 
@@ -157,11 +187,12 @@ footer {
     header {
         flex-direction: column;
         text-align: center;
+        gap: 10px;
     }
 
     .container {
-        margin: 20px auto;
-        padding: 15px;
+        margin: 30px auto 100px auto;
+        padding: 20px;
     }
 }
 
@@ -169,6 +200,10 @@ footer {
     table th, table td {
         font-size: 0.9rem;
         padding: 8px;
+    }
+
+    form {
+        flex-direction: column;
     }
 
     button {
