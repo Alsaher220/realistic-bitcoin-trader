@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Full & Updated)
+// TradeSphere Admin Dashboard JS (Full & Fixed Top-Up)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -32,12 +32,7 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Track last top-up ID
-// ==========================
-let lastTopupId = 0;
-
-// ==========================
-// Fetch Users (show actual username)
+// Fetch Users (show actual usernames)
 // ==========================
 async function fetchUsers() {
   try {
@@ -71,7 +66,7 @@ async function fetchUsers() {
 }
 
 // ==========================
-// Top Up User
+// Top Up User (updates table immediately)
 // ==========================
 async function topUpUser(userId) {
   const cash = prompt("Enter CASH amount to top up:");
@@ -94,10 +89,15 @@ async function topUpUser(userId) {
       })
     });
     const data = await res.json();
-    showAlert(userAlert, data.message || 'Top-up successful', data.success);
-    fetchUsers();
-    fetchInvestments();
-    fetchTopups();
+    if (data.success) {
+      showAlert(userAlert, data.message || 'Top-up successful', true);
+      // Immediately update the user in the table
+      fetchUsers();
+      fetchInvestments();
+      fetchTopups();
+    } else {
+      showAlert(userAlert, data.message || 'Top-up failed', false);
+    }
   } catch (err) {
     showAlert(userAlert, 'Top-up failed', false);
     console.error(err);
@@ -237,10 +237,6 @@ async function fetchTopups() {
           <td>${entry.admin || 'Admin'}</td>
           <td>${new Date(entry.date).toLocaleString()}</td>
         `;
-        if (Number(id) > lastTopupId) {
-          row.style.backgroundColor = '#d4edda';
-          setTimeout(() => { row.style.transition = 'background-color 2s'; row.style.backgroundColor = ''; }, 2000);
-        }
         topupTableBody.appendChild(row);
       });
       lastTopupId = Number(topups[0].id || topups[0]._id);
