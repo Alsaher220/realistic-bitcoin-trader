@@ -29,14 +29,13 @@ async function fetchUsers() {
     });
     const data = await res.json();
     usersTableBody.innerHTML = '';
-    if (data.success) {
+    if (data.success && data.users.length > 0) {
       data.users.forEach(user => {
-        const cash = parseFloat(user.cash) >= 50 ? parseFloat(user.cash).toFixed(2) : '50.00';
-        const btc = parseFloat(user.btc || 0).toFixed(6);
+        const cash = user.cash !== null ? parseFloat(user.cash).toFixed(2) : '50.00';
+        const btc = user.btc !== null ? parseFloat(user.btc).toFixed(6) : '0.000000';
 
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${user.id}</td>
           <td>${user.username}</td>
           <td>$${cash}</td>
           <td>${btc}</td>
@@ -45,7 +44,7 @@ async function fetchUsers() {
         usersTableBody.appendChild(row);
       });
     } else {
-      usersTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No users found</td></tr>`;
+      usersTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No users found</td></tr>`;
     }
   } catch (err) {
     showAlert(userAlert, 'Error fetching users', false);
@@ -54,7 +53,7 @@ async function fetchUsers() {
 }
 
 // ==========================
-// Top Up User (Cash, BTC, Investment)
+// Top Up User
 // ==========================
 async function topUpUser(userId) {
   const cash = prompt("Enter CASH amount to top up (leave blank for none):");
@@ -103,7 +102,7 @@ async function fetchTrades() {
     });
     const data = await res.json();
     tradesTableBody.innerHTML = '';
-    if (data.success) {
+    if (data.success && data.trades.length > 0) {
       data.trades.forEach(trade => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -115,6 +114,8 @@ async function fetchTrades() {
         `;
         tradesTableBody.appendChild(row);
       });
+    } else {
+      tradesTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No trades found</td></tr>`;
     }
   } catch (err) {
     console.error('Error fetching trades:', err);
@@ -131,21 +132,23 @@ async function fetchWithdrawals() {
     });
     const data = await res.json();
     withdrawalsTableBody.innerHTML = '';
-    if (data.success) {
+    if (data.success && data.withdrawals.length > 0) {
       data.withdrawals.forEach(w => {
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${w.username}</td>
           <td>${new Date(w.date).toLocaleString()}</td>
           <td>${parseFloat(w.amount).toFixed(2)}</td>
-          <td>${w.wallet}</td>
+          <td>${w.wallet || '-'}</td>
           <td>${w.status}</td>
           <td>
-            ${w.status === 'pending' ? `<button onclick="approveWithdrawal('${w.id}')">Approve</button>` : ''}
+            ${w.status === 'pending' ? `<button onclick="approveWithdrawal('${w.id}')">Approve</button>` : '-'}
           </td>
         `;
         withdrawalsTableBody.appendChild(row);
       });
+    } else {
+      withdrawalsTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No withdrawals</td></tr>`;
     }
   } catch (err) {
     showAlert(withdrawalAlert, 'Error fetching withdrawals', false);
@@ -185,7 +188,7 @@ async function fetchInvestments() {
     });
     const data = await res.json();
     investmentsTableBody.innerHTML = '';
-    if (data.success) {
+    if (data.success && data.investments.length > 0) {
       data.investments.forEach(inv => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -197,6 +200,8 @@ async function fetchInvestments() {
         `;
         investmentsTableBody.appendChild(row);
       });
+    } else {
+      investmentsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No investments</td></tr>`;
     }
   } catch (err) {
     showAlert(investmentAlert, 'Error fetching investments', false);
@@ -232,7 +237,7 @@ setInterval(() => {
 // ==========================
 // Logout
 // ==========================
-document.getElementById('logoutBtn').addEventListener('click', () => {
+document.getElementById('adminLogout').addEventListener('click', () => {
   localStorage.removeItem('userId');
   localStorage.removeItem('role');
   window.location.href = 'index.html';
