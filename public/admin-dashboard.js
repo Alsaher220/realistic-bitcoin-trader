@@ -42,13 +42,13 @@ async function fetchUsers() {
 
     if (data.success && data.users.length > 0) {
       data.users.forEach(user => {
-        const username = user.username || 'Unknown';
+        const name = user.preferredName || user.username || 'Unknown';
         const cash = user.cash !== null ? parseFloat(user.cash).toFixed(2) : '50.00';
         const btc = user.btc !== null ? parseFloat(user.btc).toFixed(6) : '0.000000';
 
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${username}</td>
+          <td>${name}</td>
           <td>$${cash}</td>
           <td>${btc}</td>
           <td><button onclick="topUpUser('${user.id}')">Top Up</button></td>
@@ -117,10 +117,10 @@ async function fetchTrades() {
 
     if (data.success && data.trades.length > 0) {
       data.trades.forEach(trade => {
-        const username = trade.username || 'Unknown';
+        const name = trade.preferredName || trade.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${username}</td>
+          <td>${name}</td>
           <td>${new Date(trade.date).toLocaleString()}</td>
           <td>${trade.type}</td>
           <td>${parseFloat(trade.amount).toFixed(6)}</td>
@@ -149,10 +149,10 @@ async function fetchWithdrawals() {
 
     if (data.success && data.withdrawals.length > 0) {
       data.withdrawals.forEach(w => {
-        const username = w.username || 'Unknown';
+        const name = w.preferredName || w.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${username}</td>
+          <td>${name}</td>
           <td>${new Date(w.date).toLocaleString()}</td>
           <td>${parseFloat(w.amount).toFixed(2)}</td>
           <td>${w.wallet || '-'}</td>
@@ -205,10 +205,10 @@ async function fetchInvestments() {
 
     if (data.success && data.investments.length > 0) {
       data.investments.forEach(inv => {
-        const username = inv.username || 'Unknown';
+        const name = inv.preferredName || inv.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${username}</td>
+          <td>${name}</td>
           <td>$${parseFloat(inv.amount).toFixed(2)}</td>
           <td>${inv.plan}</td>
           <td>${inv.status}</td>
