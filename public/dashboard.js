@@ -16,76 +16,86 @@ const withdrawAlert = document.getElementById('withdrawAlert');
 
 const START_CASH = 50;
 
-// Fetch user portfolio and render dashboard
+// ==========================
+// Fetch User Data
+// ==========================
 async function fetchUserData() {
   try {
     const res = await fetch(`/user/${userId}`);
     const data = await res.json();
 
-    if (data.success) {
-      const user = data.user;
+    if (!data.success) return;
 
-      // Username
-      usernameSpan.textContent = user.username;
+    const user = data.user;
 
-      // Cash
-      let cash = parseFloat(user.cash);
-      if (isNaN(cash)) cash = START_CASH;
-      cashSpan.textContent = cash.toFixed(2);
+    // Display preferred name if available, otherwise username
+    usernameSpan.textContent = user.preferredName || user.username || 'Unknown';
 
-      // BTC
-      btcSpan.textContent = parseFloat(user.btc || 0).toFixed(6);
+    // Cash with fallback
+    let cash = parseFloat(user.cash);
+    if (isNaN(cash)) cash = START_CASH;
+    cashSpan.textContent = cash.toFixed(2);
 
-      // Withdrawals & Investments
-      renderWithdrawals(data.withdrawals || []);
-      renderInvestments(data.investments || []);
-    }
+    // BTC
+    let btc = parseFloat(user.btc);
+    if (isNaN(btc)) btc = 0;
+    btcSpan.textContent = btc.toFixed(6);
+
+    // Withdrawals & Investments
+    renderWithdrawals(data.withdrawals || []);
+    renderInvestments(data.investments || []);
   } catch (err) {
-    console.error("Error fetching portfolio:", err);
+    console.error('Error fetching user data:', err);
   }
 }
 
+// ==========================
+// Render Withdrawals
+// ==========================
 function renderWithdrawals(withdrawals = []) {
   withdrawalsTable.innerHTML = '';
-  if (withdrawals.length > 0) {
-    withdrawals.forEach(w => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${parseFloat(w.amount).toFixed(2)}</td>
-        <td>${w.wallet || '-'}</td>
-        <td>${w.status || 'Pending'}</td>
-        <td>${new Date(w.date || Date.now()).toLocaleString()}</td>
-      `;
-      withdrawalsTable.appendChild(row);
-    });
-  } else {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td colspan="4" style="text-align:center;">No withdrawals yet</td>`;
-    withdrawalsTable.appendChild(row);
+  if (withdrawals.length === 0) {
+    withdrawalsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No withdrawals yet</td></tr>`;
+    return;
   }
+
+  withdrawals.forEach(w => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${parseFloat(w.amount || 0).toFixed(2)}</td>
+      <td>${w.wallet || '-'}</td>
+      <td>${w.status || 'Pending'}</td>
+      <td>${new Date(w.date || Date.now()).toLocaleString()}</td>
+    `;
+    withdrawalsTable.appendChild(row);
+  });
 }
 
+// ==========================
+// Render Investments
+// ==========================
 function renderInvestments(investments = []) {
   investmentsTable.innerHTML = '';
-  if (investments.length > 0) {
-    investments.forEach(inv => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${inv.plan}</td>
-        <td>${parseFloat(inv.amount).toFixed(2)}</td>
-        <td>${inv.status || 'Pending'}</td>
-        <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
-      `;
-      investmentsTable.appendChild(row);
-    });
-  } else {
-    const row = document.createElement('tr');
-    row.innerHTML = `<td colspan="4" style="text-align:center;">No investments yet</td>`;
-    investmentsTable.appendChild(row);
+  if (investments.length === 0) {
+    investmentsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No investments yet</td></tr>`;
+    return;
   }
+
+  investments.forEach(inv => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${inv.plan || '-'}</td>
+      <td>${parseFloat(inv.amount || 0).toFixed(2)}</td>
+      <td>${inv.status || 'Pending'}</td>
+      <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
+    `;
+    investmentsTable.appendChild(row);
+  });
 }
 
-// Show alert helper
+// ==========================
+// Show Alerts
+// ==========================
 function showAlert(el, msg, isSuccess = true) {
   el.textContent = msg;
   el.className = `alert ${isSuccess ? 'success' : 'error'}`;
@@ -93,7 +103,9 @@ function showAlert(el, msg, isSuccess = true) {
   setTimeout(() => (el.style.display = 'none'), 3000);
 }
 
+// ==========================
 // Buy BTC
+// ==========================
 document.getElementById('buyForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('buyAmount').value);
@@ -113,7 +125,9 @@ document.getElementById('buyForm').addEventListener('submit', async e => {
   }
 });
 
+// ==========================
 // Sell BTC
+// ==========================
 document.getElementById('sellForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('sellAmount').value);
@@ -133,7 +147,9 @@ document.getElementById('sellForm').addEventListener('submit', async e => {
   }
 });
 
+// ==========================
 // Withdraw
+// ==========================
 document.getElementById('withdrawForm').addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('withdrawAmount').value);
@@ -151,14 +167,19 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
   } catch (err) {
     showAlert(withdrawAlert, 'Error requesting withdrawal', false);
   }
-}
+});
 
+// ==========================
 // Initial fetch + auto-refresh
+// ==========================
 fetchUserData();
 setInterval(fetchUserData, 5000);
 
+// ==========================
 // Logout
+// ==========================
 function logout() {
   localStorage.removeItem('userId');
   window.location.href = 'index.html';
 }
+document.getElementById('logoutBtn')?.addEventListener('click', logout);
