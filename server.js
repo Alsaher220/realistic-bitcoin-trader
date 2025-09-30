@@ -36,7 +36,7 @@ app.post('/register', async (req, res) => {
   try {
     const hashed = await bcrypt.hash(password, 10);
 
-    // Set default cash and BTC
+    // Default balances for new users
     const defaultCash = 50;
     const defaultBTC = 0;
 
@@ -80,16 +80,11 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// ✅ FIX: Add missing dashboard endpoints
-
-// Get user basic info
+// Get user info
 app.get('/user/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const userRes = await pool.query(
-      'SELECT id, username, cash, btc FROM users WHERE id=$1',
-      [id]
-    );
+    const userRes = await pool.query('SELECT id, username, cash, btc FROM users WHERE id=$1', [id]);
     const user = userRes.rows[0];
     if (!user) return res.json({ success: false, message: 'User not found' });
     res.json({ success: true, user });
@@ -99,7 +94,7 @@ app.get('/user/:id', async (req, res) => {
   }
 });
 
-// Get user withdrawals
+// Get withdrawals
 app.get('/user/:id/withdrawals', async (req, res) => {
   const { id } = req.params;
   try {
@@ -114,7 +109,7 @@ app.get('/user/:id/withdrawals', async (req, res) => {
   }
 });
 
-// Get user investments
+// Get investments
 app.get('/user/:id/investments', async (req, res) => {
   const { id } = req.params;
   try {
@@ -129,7 +124,7 @@ app.get('/user/:id/investments', async (req, res) => {
   }
 });
 
-// Get user portfolio
+// Get full portfolio
 app.get('/user/:id/portfolio', async (req, res) => {
   const { id } = req.params;
   try {
@@ -269,18 +264,35 @@ app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
   }
 });
 
+// ✅ Updated Admin Top Up (cash, btc, investments)
 app.post('/admin/topup', verifyAdmin, async (req, res) => {
-  const { userId, cash, btc } = req.body;
+  const { userId, cash, btc, investmentAmount, investmentPlan } = req.body;
+
   try {
-    await pool.query('UPDATE users SET cash = cash + $1, btc = btc + $2 WHERE id=$3', [cash, btc, userId]);
-    res.json({ success: true, message: 'User topped up' });
+    // 1. Update cash and btc if provided
+    if (cash || btc) {
+      await pool.query(
+        'UPDATE users SET cash = cash + COALESCE($1,0), btc = btc + COALESCE($2,0) WHERE id=$3',
+        [cash || 0, btc || 0, userId]
+      );
+    }
+
+    // 2. Add investment if provided
+    if (investmentAmount) {
+      await pool.query(
+        'INSERT INTO investments (user_id, amount, plan, status) VALUES ($1,$2,$3,$4)',
+        [userId, investmentAmount, investmentPlan || 'Admin Top-up Plan', 'active']
+      );
+    }
+
+    res.json({ success: true, message: 'User topped up successfully' });
   } catch (err) {
     console.error(err);
     res.json({ success: false, message: 'Top-up failed' });
   }
 });
 
-// ✅ NEW: Admin add investment
+// ✅ Optional: separate investment add route
 app.post('/admin/investments/add', verifyAdmin, async (req, res) => {
   const { userId, amount, plan } = req.body;
   try {
