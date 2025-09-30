@@ -1,4 +1,4 @@
--- seed.sql (final)
+-- seed_with_preferred_name.sql
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -6,6 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
+  preferred_name TEXT,
   password TEXT NOT NULL,
   role TEXT DEFAULT 'user',
   cash NUMERIC(18,2) DEFAULT 50,
@@ -44,10 +45,11 @@ CREATE TABLE IF NOT EXISTS investments (
 );
 
 -- Admin user (Alsaher) — REPLACE PASSWORD BELOW
-INSERT INTO users (username, password, role, cash, btc)
+INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'Alsaher',
-  crypt('SaTURn1447', gen_salt('bf')), -- <-- replace this string with your chosen password
+  'Alsaher',  -- preferred_name
+  crypt('YOUR_ADMIN_PASSWORD_HERE', gen_salt('bf')), -- <-- replace with your password
   'admin',
   1000.00,
   10.00
@@ -56,12 +58,14 @@ ON CONFLICT (username) DO UPDATE
 SET password = EXCLUDED.password,
     cash = EXCLUDED.cash,
     btc = EXCLUDED.btc,
-    role = EXCLUDED.role;
+    role = EXCLUDED.role,
+    preferred_name = EXCLUDED.preferred_name;
 
 -- Demo user
-INSERT INTO users (username, password, role, cash, btc)
+INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'demo',
+  'Demo User',
   crypt('DemoPass123!', gen_salt('bf')),
   'user',
   50.00,
@@ -69,7 +73,7 @@ VALUES (
 )
 ON CONFLICT (username) DO NOTHING;
 
--- Demo investment for demo user (if not present)
+-- Demo investment for demo user
 INSERT INTO investments (user_id, amount, plan, status)
 SELECT id, 25.00, 'Starter Plan', 'active'
 FROM users 
