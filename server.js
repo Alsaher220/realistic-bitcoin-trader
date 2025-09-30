@@ -194,7 +194,7 @@ app.post('/withdraw', asyncHandler(async (req, res) => {
   if (user.cash < amount) return res.json({ success: false, message: 'Insufficient cash' });
 
   await pool.query('UPDATE users SET cash=cash-$1 WHERE id=$2', [amount, userId]);
-  await pool.query('INSERT INTO withdrawals (user_id, amount, wallet) VALUES ($1,$2,$3)', [userId, amount, wallet]);
+  await pool.query('INSERT INTO withdrawals (user_id, amount, wallet, status, date) VALUES ($1,$2,$3,$4,NOW())', [userId, amount, wallet, 'pending']);
 
   res.json({ success: true, message: 'Withdrawal requested!' });
 }));
@@ -241,7 +241,49 @@ app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Top-up successful!' });
 }));
 
-// Dashboard routes
+// Admin: Fetch Withdrawals
+app.get('/admin/withdrawals', verifyAdmin, asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT w.id, w.amount, w.wallet, w.status, w.date, u.username 
+    FROM withdrawals w 
+    JOIN users u ON w.user_id = u.id
+    ORDER BY w.date DESC
+  `);
+  res.json({ success: true, withdrawals: result.rows });
+}));
+
+// Admin: Approve Withdrawal
+app.post('/admin/withdrawals/process', verifyAdmin, asyncHandler(async (req, res) => {
+  const { withdrawalId } = req.body;
+  if (!withdrawalId) return res.json({ success: false, message: 'Withdrawal ID required' });
+
+  await pool.query('UPDATE withdrawals SET status=$1 WHERE id=$2', ['approved', withdrawalId]);
+  res.json({ success: true, message: 'Withdrawal approved!' });
+}));
+
+// Admin: Fetch Investments
+app.get('/admin/investments', verifyAdmin, asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT i.id, i.amount, i.plan, i.status, i.created_at, u.username 
+    FROM investments i
+    JOIN users u ON i.user_id = u.id
+    ORDER BY i.created_at DESC
+  `);
+  res.json({ success: true, investments: result.rows });
+}));
+
+// Admin: Fetch Top-Ups
+app.get('/admin/topups', verifyAdmin, asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT t.id, t.user, t.amount, t.admin, t.date, u.username
+    FROM topups t
+    JOIN users u ON t.user = u.id
+    ORDER BY t.date DESC
+  `);
+  res.json({ success: true, topups: result.rows });
+}));
+
+// ------------------- DASHBOARD ROUTES -------------------
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'user-dashboard.html')));
 app.get('/admin-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html')));
 
