@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Fixed)
+// TradeSphere Admin Dashboard JS (Full Version)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -30,7 +30,7 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Fetch and Display Users
+// Fetch Users
 // ==========================
 async function fetchUsers() {
   try {
