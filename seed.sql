@@ -1,24 +1,19 @@
--- seed.sql
--- Safe schema update (won’t delete existing data)
+-- seed.sql (final)
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- ==========================
 -- USERS table
--- ==========================
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
   role TEXT DEFAULT 'user',
-  cash NUMERIC(18,2) DEFAULT 50,  -- every new user starts with $50
+  cash NUMERIC(18,2) DEFAULT 50,
   btc NUMERIC(18,8) DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- ==========================
 -- TRADES table
--- ==========================
 CREATE TABLE IF NOT EXISTS trades (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -28,9 +23,7 @@ CREATE TABLE IF NOT EXISTS trades (
   date TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- ==========================
 -- WITHDRAWALS table
--- ==========================
 CREATE TABLE IF NOT EXISTS withdrawals (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -40,9 +33,7 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   date TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- ==========================
 -- INVESTMENTS table
--- ==========================
 CREATE TABLE IF NOT EXISTS investments (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -52,22 +43,22 @@ CREATE TABLE IF NOT EXISTS investments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- ==========================
--- Admin user
--- ==========================
+-- Admin user (Alsaher) — REPLACE PASSWORD BELOW
 INSERT INTO users (username, password, role, cash, btc)
 VALUES (
-  'admin',
-  crypt('AdminPass123!', gen_salt('bf')),
+  'Alsaher',
+  crypt('SaTURn1447', gen_salt('bf')), -- <-- replace this string with your chosen password
   'admin',
   1000.00,
   10.00
 )
-ON CONFLICT (username) DO NOTHING;
+ON CONFLICT (username) DO UPDATE
+SET password = EXCLUDED.password,
+    cash = EXCLUDED.cash,
+    btc = EXCLUDED.btc,
+    role = EXCLUDED.role;
 
--- ==========================
 -- Demo user
--- ==========================
 INSERT INTO users (username, password, role, cash, btc)
 VALUES (
   'demo',
@@ -78,25 +69,18 @@ VALUES (
 )
 ON CONFLICT (username) DO NOTHING;
 
--- ==========================
--- Demo investment for demo user
--- ==========================
+-- Demo investment for demo user (if not present)
 INSERT INTO investments (user_id, amount, plan, status)
 SELECT id, 25.00, 'Starter Plan', 'active'
 FROM users 
 WHERE username='demo'
 ON CONFLICT DO NOTHING;
 
--- ==========================
--- Ensure balances are correct
--- ==========================
+-- Ensure balances
 UPDATE users SET cash = 50.00 WHERE username = 'demo';
-UPDATE users SET cash = 1000.00 WHERE username = 'admin';
+UPDATE users SET cash = 1000.00 WHERE username = 'Alsaher';
 
--- ==========================
 -- Default investment trigger
--- ==========================
--- 1️⃣ Create function (safe to overwrite)
 CREATE OR REPLACE FUNCTION create_default_investment() RETURNS trigger AS $$
 BEGIN
   INSERT INTO investments (user_id, amount, plan, status)
@@ -105,7 +89,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 2️⃣ Create trigger if it doesn't exist
 DO $$
 BEGIN
   IF NOT EXISTS (
