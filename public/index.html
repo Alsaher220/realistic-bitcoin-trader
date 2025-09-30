@@ -69,7 +69,7 @@
     &copy; 2020 TradeSphere
   </footer>
 
-  <!-- ✅ Login Script -->
+  <!-- ✅ Login Script with Admin Redirect -->
   <script>
     const form = document.getElementById('loginForm');
     const alertBox = document.getElementById('alertMessage');
@@ -99,11 +99,16 @@
         alertBox.style.display = "block";
 
         if(data.success) {
-          // ✅ Save userId for dashboard.js
+          // ✅ Save userId and role
           localStorage.setItem('userId', data.user.id);
+          localStorage.setItem('role', data.user.role);
 
           setTimeout(() => {
-            window.location.href = '/dashboard'; 
+            if (data.user.role === 'admin') {
+              window.location.href = '/admin-dashboard'; // Admin redirect
+            } else {
+              window.location.href = '/dashboard'; // Regular user redirect
+            }
           }, 1000);
         }
 
