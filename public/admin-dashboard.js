@@ -1,6 +1,10 @@
 // ==========================
-// Admin Dashboard JS
+// TradeSphere Admin Dashboard JS (Complete)
 // ==========================
+
+// Check if user is logged in and is admin
+const adminId = localStorage.getItem('userId');
+if (!adminId) window.location.href = 'index.html';
 
 const usersTableBody = document.querySelector('#usersTable tbody');
 const tradesTableBody = document.querySelector('#tradesTable tbody');
@@ -11,28 +15,36 @@ const userAlert = document.getElementById('userAlert');
 const withdrawalAlert = document.getElementById('withdrawalAlert');
 const investmentAlert = document.getElementById('investmentAlert');
 
+const autoRefreshInterval = 5000;
+
 // ==========================
 // Fetch and Display Users
 // ==========================
 async function fetchUsers() {
   try {
-    const res = await fetch('/admin/users');
+    const res = await fetch('/admin/users'); // Server must return all users with username, cash, btc, withdrawals[], investments[]
     const data = await res.json();
+
     usersTableBody.innerHTML = '';
     if (data.success) {
       data.users.forEach(user => {
+        const cash = parseFloat(user.cash) >= 50 ? parseFloat(user.cash).toFixed(2) : '50.00';
+        const btc = parseFloat(user.btc || 0).toFixed(6);
+
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${user.id}</td>
           <td>${user.username}</td>
-          <td>$${parseFloat(user.cash).toFixed(2)}</td>
-          <td>${parseFloat(user.btc).toFixed(6)}</td>
+          <td>$${cash}</td>
+          <td>${btc}</td>
           <td>
             <button onclick="topUpUser('${user.id}')">Top Up</button>
           </td>
         `;
         usersTableBody.appendChild(row);
       });
+    } else {
+      usersTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No users found</td></tr>`;
     }
   } catch (err) {
     showAlert(userAlert, 'Error fetching users', false);
@@ -41,7 +53,7 @@ async function fetchUsers() {
 }
 
 // ==========================
-// Top Up User (Cash, BTC, Investment)
+// Top Up User
 // ==========================
 async function topUpUser(userId) {
   const cash = prompt("Enter CASH amount to top up (leave blank for none):");
@@ -53,7 +65,7 @@ async function topUpUser(userId) {
     investPlan = prompt("Enter Investment Plan name:") || "Custom Plan";
   }
 
-  if (!cash && !btc && !investAmt) return; // nothing entered
+  if (!cash && !btc && !investAmt) return;
 
   try {
     const res = await fetch('/admin/topup', {
@@ -134,7 +146,7 @@ async function fetchWithdrawals() {
 }
 
 // ==========================
-// Approve Withdrawal (Fixed)
+// Approve Withdrawal
 // ==========================
 async function approveWithdrawal(withdrawalId) {
   try {
@@ -180,7 +192,7 @@ async function fetchInvestments() {
 }
 
 // ==========================
-// Show Alert Function
+// Show Alert
 // ==========================
 function showAlert(element, message, isSuccess = true) {
   element.textContent = message;
@@ -190,17 +202,24 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Initial Fetch
+// Logout Button
+// ==========================
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  localStorage.removeItem('userId');
+  window.location.href = 'index.html';
+});
+
+// ==========================
+// Initial Fetch + Auto-Refresh
 // ==========================
 fetchUsers();
 fetchTrades();
 fetchWithdrawals();
 fetchInvestments();
 
-// Optional: auto-refresh every 5-10 seconds
 setInterval(() => {
   fetchUsers();
   fetchTrades();
   fetchWithdrawals();
   fetchInvestments();
-}, 5000);
+}, autoRefreshInterval);
