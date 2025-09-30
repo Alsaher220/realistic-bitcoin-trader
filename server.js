@@ -26,20 +26,16 @@ pool.connect()
 // ------------------- SEED EXISTING USERS -------------------
 (async () => {
   try {
-    // Ensure preferred_name is set
     await pool.query(`
       UPDATE users
       SET preferred_name = username
       WHERE preferred_name IS NULL
     `);
-
-    // Ensure all users have at least $50 cash
     await pool.query(`
       UPDATE users
       SET cash = 50
       WHERE cash IS NULL OR cash < 50
     `);
-
     console.log("Existing users fixed: preferred_name and cash ensured.");
   } catch (err) {
     console.error("Error seeding existing users:", err.stack);
@@ -200,8 +196,6 @@ app.post('/withdraw', asyncHandler(async (req, res) => {
 }));
 
 // ------------------- ADMIN ROUTES -------------------
-
-// Get all users
 app.get('/admin/users', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query('SELECT id, username, preferred_name, cash, btc FROM users ORDER BY id ASC');
   res.json({ success: true, users: result.rows });
@@ -214,17 +208,14 @@ app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
 
   if (!userId) return res.json({ success: false, message: 'User ID is required' });
 
-  // Fetch existing user balances
   const userRes = await pool.query('SELECT cash, btc FROM users WHERE id=$1', [userId]);
   const user = userRes.rows[0];
   if (!user) return res.json({ success: false, message: 'User not found' });
 
-  // Add balances
   const newCash = Number(user.cash) + Number(cash);
   const newBTC = Number(user.btc) + Number(btc);
   await pool.query('UPDATE users SET cash=$1, btc=$2 WHERE id=$3', [newCash, newBTC, userId]);
 
-  // Insert investment if provided
   if (investmentAmount && investmentPlan) {
     await pool.query(
       'INSERT INTO investments (user_id, plan, amount, status, created_at) VALUES ($1,$2,$3,$4,NOW())',
@@ -232,9 +223,9 @@ app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
     );
   }
 
-  // Record top-up
+  // ✅ Fixed column names to match SQL
   await pool.query(
-    'INSERT INTO topups (user, amount, admin, date) VALUES ($1,$2,$3,NOW())',
+    'INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())',
     [userId, Number(cash) + Number(btc), adminUserId]
   );
 
@@ -275,9 +266,9 @@ app.get('/admin/investments', verifyAdmin, asyncHandler(async (req, res) => {
 // Admin: Fetch Top-Ups
 app.get('/admin/topups', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
-    SELECT t.id, t.user, t.amount, t.admin, t.date, u.username
+    SELECT t.id, t.user_id, t.amount, t.admin_id, t.date, u.username
     FROM topups t
-    JOIN users u ON t.user = u.id
+    JOIN users u ON t.user_id = u.id
     ORDER BY t.date DESC
   `);
   res.json({ success: true, topups: result.rows });
