@@ -200,9 +200,45 @@ app.post('/withdraw', asyncHandler(async (req, res) => {
 }));
 
 // ------------------- ADMIN ROUTES -------------------
+
+// Get all users
 app.get('/admin/users', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query('SELECT id, username, preferred_name, cash, btc FROM users ORDER BY id ASC');
   res.json({ success: true, users: result.rows });
+}));
+
+// Admin Top-Up
+app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
+  const { userId, cash = 0, btc = 0, investmentAmount = 0, investmentPlan } = req.body;
+  const adminUserId = req.headers['x-user-id'];
+
+  if (!userId) return res.json({ success: false, message: 'User ID is required' });
+
+  // Fetch existing user balances
+  const userRes = await pool.query('SELECT cash, btc FROM users WHERE id=$1', [userId]);
+  const user = userRes.rows[0];
+  if (!user) return res.json({ success: false, message: 'User not found' });
+
+  // Add balances
+  const newCash = Number(user.cash) + Number(cash);
+  const newBTC = Number(user.btc) + Number(btc);
+  await pool.query('UPDATE users SET cash=$1, btc=$2 WHERE id=$3', [newCash, newBTC, userId]);
+
+  // Insert investment if provided
+  if (investmentAmount && investmentPlan) {
+    await pool.query(
+      'INSERT INTO investments (user_id, plan, amount, status, created_at) VALUES ($1,$2,$3,$4,NOW())',
+      [userId, investmentPlan, investmentAmount, 'active']
+    );
+  }
+
+  // Record top-up
+  await pool.query(
+    'INSERT INTO topups (user, amount, admin, date) VALUES ($1,$2,$3,NOW())',
+    [userId, Number(cash) + Number(btc), adminUserId]
+  );
+
+  res.json({ success: true, message: 'Top-up successful!' });
 }));
 
 // Dashboard routes
