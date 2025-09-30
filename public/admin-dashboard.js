@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Full Version)
+// TradeSphere Admin Dashboard JS (Full & Updated)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -32,12 +32,12 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Track last top-up ID for highlight
+// Track last top-up ID
 // ==========================
 let lastTopupId = 0;
 
 // ==========================
-// Fetch Users
+// Fetch Users (show actual username)
 // ==========================
 async function fetchUsers() {
   try {
@@ -47,14 +47,14 @@ async function fetchUsers() {
 
     if (data.success && Array.isArray(data.users) && data.users.length) {
       data.users.forEach(user => {
-        const name = user.preferred_name || user.username || 'Unknown';
+        const username = user.username || 'Unknown';
         const cash = Number(user.cash || 0).toFixed(2);
         const btc = Number(user.btc || 0).toFixed(6);
         const userId = user.id || user._id || user.userId;
 
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${name}</td>
+          <td>${username}</td>
           <td>$${cash}</td>
           <td>${btc}</td>
           <td><button onclick="topUpUser('${userId}')">Top Up</button></td>
@@ -115,10 +115,10 @@ async function fetchTrades() {
 
     if (data.success && Array.isArray(data.trades) && data.trades.length) {
       data.trades.forEach(trade => {
-        const name = trade.preferred_name || trade.username || 'Unknown';
+        const username = trade.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${name}</td>
+          <td>${username}</td>
           <td>${new Date(trade.date).toLocaleString()}</td>
           <td>${trade.type}</td>
           <td>${Number(trade.amount).toFixed(6)}</td>
@@ -145,10 +145,10 @@ async function fetchWithdrawals() {
 
     if (data.success && Array.isArray(data.withdrawals) && data.withdrawals.length) {
       data.withdrawals.forEach(w => {
-        const name = w.preferred_name || w.username || 'Unknown';
+        const username = w.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${name}</td>
+          <td>${username}</td>
           <td>${new Date(w.date).toLocaleString()}</td>
           <td>${Number(w.amount).toFixed(2)}</td>
           <td>${w.wallet || '-'}</td>
@@ -196,10 +196,10 @@ async function fetchInvestments() {
 
     if (data.success && Array.isArray(data.investments) && data.investments.length) {
       data.investments.forEach(inv => {
-        const name = inv.preferred_name || inv.username || 'Unknown';
+        const username = inv.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${name}</td>
+          <td>${username}</td>
           <td>$${Number(inv.amount).toFixed(2)}</td>
           <td>${inv.plan}</td>
           <td>${inv.status}</td>
@@ -232,7 +232,7 @@ async function fetchTopups() {
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${id}</td>
-          <td>${entry.username || entry.user || 'Unknown'}</td>
+          <td>${entry.user || entry.username || 'Unknown'}</td>
           <td>${entry.amount}</td>
           <td>${entry.admin || 'Admin'}</td>
           <td>${new Date(entry.date).toLocaleString()}</td>
@@ -254,7 +254,7 @@ async function fetchTopups() {
 }
 
 // ==========================
-// Refresh All Data
+// Refresh All
 // ==========================
 function refreshAll() {
   fetchUsers();
