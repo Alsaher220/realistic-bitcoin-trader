@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS
+// TradeSphere Admin Dashboard JS (Fixed)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -42,7 +42,7 @@ async function fetchUsers() {
 
     if (data.success && data.users.length > 0) {
       data.users.forEach(user => {
-        const name = user.preferredName || user.username || 'Unknown';
+        const name = user.preferred_name || user.username || 'Unknown';
         const cash = user.cash !== null ? parseFloat(user.cash).toFixed(2) : '50.00';
         const btc = user.btc !== null ? parseFloat(user.btc).toFixed(6) : '0.000000';
 
@@ -105,7 +105,7 @@ async function topUpUser(userId) {
 }
 
 // ==========================
-// Fetch and Display Trades
+// Fetch Trades
 // ==========================
 async function fetchTrades() {
   try {
@@ -117,7 +117,7 @@ async function fetchTrades() {
 
     if (data.success && data.trades.length > 0) {
       data.trades.forEach(trade => {
-        const name = trade.preferredName || trade.username || 'Unknown';
+        const name = trade.preferred_name || trade.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${name}</td>
@@ -137,7 +137,7 @@ async function fetchTrades() {
 }
 
 // ==========================
-// Fetch and Display Withdrawals
+// Fetch Withdrawals
 // ==========================
 async function fetchWithdrawals() {
   try {
@@ -149,7 +149,7 @@ async function fetchWithdrawals() {
 
     if (data.success && data.withdrawals.length > 0) {
       data.withdrawals.forEach(w => {
-        const name = w.preferredName || w.username || 'Unknown';
+        const name = w.preferred_name || w.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${name}</td>
@@ -193,7 +193,7 @@ async function approveWithdrawal(withdrawalId) {
 }
 
 // ==========================
-// Fetch and Display Investments
+// Fetch Investments
 // ==========================
 async function fetchInvestments() {
   try {
@@ -205,7 +205,7 @@ async function fetchInvestments() {
 
     if (data.success && data.investments.length > 0) {
       data.investments.forEach(inv => {
-        const name = inv.preferredName || inv.username || 'Unknown';
+        const name = inv.preferred_name || inv.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${name}</td>
