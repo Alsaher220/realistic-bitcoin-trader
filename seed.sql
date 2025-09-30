@@ -18,7 +18,34 @@ BEGIN
 END
 $$;
 
--- 3️⃣ Admin user
+-- 3️⃣ Ensure tables exist
+CREATE TABLE IF NOT EXISTS investments (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    plan TEXT,
+    amount NUMERIC(12,2),
+    status TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS withdrawals (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    amount NUMERIC(12,2),
+    wallet TEXT,
+    status TEXT DEFAULT 'pending',
+    date TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS topups (
+    id SERIAL PRIMARY KEY,
+    user INT REFERENCES users(id),
+    amount NUMERIC(12,2),
+    admin INT REFERENCES users(id),
+    date TIMESTAMP DEFAULT NOW()
+);
+
+-- 4️⃣ Admin user
 INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'Alsaher',
@@ -35,7 +62,7 @@ SET password = EXCLUDED.password,
     role = EXCLUDED.role,
     preferred_name = EXCLUDED.preferred_name;
 
--- 4️⃣ Demo user
+-- 5️⃣ Demo user
 INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'demo',
@@ -47,18 +74,18 @@ VALUES (
 )
 ON CONFLICT (username) DO NOTHING;
 
--- 5️⃣ Demo investment for demo user
+-- 6️⃣ Demo investment for demo user
 INSERT INTO investments (user_id, amount, plan, status)
 SELECT id, 25.00, 'Starter Plan', 'active'
 FROM users 
 WHERE username='demo'
 ON CONFLICT DO NOTHING;
 
--- 6️⃣ Ensure balances
+-- 7️⃣ Ensure balances
 UPDATE users SET cash = 50.00 WHERE username = 'demo';
 UPDATE users SET cash = 1000.00 WHERE username = 'Alsaher';
 
--- 7️⃣ Default investment trigger
+-- 8️⃣ Default investment trigger
 CREATE OR REPLACE FUNCTION create_default_investment() RETURNS trigger AS $$
 BEGIN
   INSERT INTO investments (user_id, amount, plan, status)
