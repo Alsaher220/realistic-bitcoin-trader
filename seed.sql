@@ -1,5 +1,5 @@
 -- ===========================
--- Safe seed for TradeSphere
+-- Safe seed for TradeSphere (Corrected)
 -- ===========================
 
 -- 1️⃣ Ensure pgcrypto extension exists
@@ -39,9 +39,9 @@ CREATE TABLE IF NOT EXISTS withdrawals (
 
 CREATE TABLE IF NOT EXISTS topups (
     id SERIAL PRIMARY KEY,
-    user INT REFERENCES users(id),
+    user_id INT REFERENCES users(id),
     amount NUMERIC(12,2),
-    admin INT REFERENCES users(id),
+    admin_id INT REFERENCES users(id),
     date TIMESTAMP DEFAULT NOW()
 );
 
