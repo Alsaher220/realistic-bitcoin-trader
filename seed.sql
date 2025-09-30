@@ -49,7 +49,7 @@ INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'Alsaher',
   'Alsaher',  -- preferred_name
-  crypt('YOUR_ADMIN_PASSWORD_HERE', gen_salt('bf')), -- <-- replace with your password
+  crypt('SaTURn1447', gen_salt('bf')), -- <-- replace with your password
   'admin',
   1000.00,
   10.00
