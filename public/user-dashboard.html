@@ -11,13 +11,13 @@
   <header>
     <img src="B10CD185-B0B2-4ACF-9906-CF907D46B9D6.png" alt="TradeSphere Logo" class="logo">
     <h1>TradeSphere</h1>
-    <button onclick="logout()">Logout</button>
+    <button id="logoutBtn">Logout</button>
   </header>
 
   <div class="container">
     <section class="account-info card">
       <h2>Account Info</h2>
-      <p>Username: <span id="username">Loading...</span></p>
+      <p>Username: <span id="username">-</span></p>
       <p>Cash: $<span id="cash">0.00</span></p>
       <p>BTC: <span id="btc">0.000000</span> BTC</p>
     </section>
@@ -34,7 +34,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+          <!-- Dynamically filled by dashboard.js -->
         </tbody>
       </table>
     </section>
@@ -51,7 +51,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+          <!-- Dynamically filled by dashboard.js -->
         </tbody>
       </table>
     </section>
@@ -88,15 +88,9 @@
   </div>
 
   <footer>
-    &copy; 2020 TradeSphere
+    &copy; 2025 TradeSphere
   </footer>
 
   <script src="dashboard.js"></script>
-  <script>
-    function logout() {
-      localStorage.removeItem('userId');
-      window.location.href = 'index.html';
-    }
-  </script>
 </body>
 </html>
