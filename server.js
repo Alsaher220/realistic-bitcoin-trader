@@ -129,7 +129,7 @@ app.get('/user/:id/investments', async (req, res) => {
   }
 });
 
-// Get user portfolio (still kept for admin or extended views)
+// Get user portfolio
 app.get('/user/:id/portfolio', async (req, res) => {
   const { id } = req.params;
   try {
@@ -277,6 +277,21 @@ app.post('/admin/topup', verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.json({ success: false, message: 'Top-up failed' });
+  }
+});
+
+// ✅ NEW: Admin add investment
+app.post('/admin/investments/add', verifyAdmin, async (req, res) => {
+  const { userId, amount, plan } = req.body;
+  try {
+    await pool.query(
+      'INSERT INTO investments (user_id, amount, plan, status) VALUES ($1,$2,$3,$4)',
+      [userId, amount, plan || 'Custom Plan', 'active']
+    );
+    res.json({ success: true, message: 'Investment added successfully' });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Failed to add investment' });
   }
 });
 
