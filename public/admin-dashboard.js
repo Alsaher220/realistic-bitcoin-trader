@@ -29,7 +29,6 @@ async function fetchUsers() {
           <td>${parseFloat(user.btc).toFixed(6)}</td>
           <td>
             <button onclick="topUpUser('${user.id}')">Top Up</button>
-            <button onclick="addInvestmentPrompt('${user.id}')">Add Investment</button>
           </td>
         `;
         usersTableBody.appendChild(row);
@@ -42,52 +41,40 @@ async function fetchUsers() {
 }
 
 // ==========================
-// Top Up User
+// Top Up User (Cash, BTC, Investment)
 // ==========================
 async function topUpUser(userId) {
-  const amount = prompt("Enter amount to top up:");
-  if (!amount || isNaN(amount)) return;
+  const cash = prompt("Enter CASH amount to top up (leave blank for none):");
+  const btc = prompt("Enter BTC amount to top up (leave blank for none):");
+  const investAmt = prompt("Enter INVESTMENT amount (leave blank for none):");
+  let investPlan = null;
+
+  if (investAmt && !isNaN(investAmt)) {
+    investPlan = prompt("Enter Investment Plan name:") || "Custom Plan";
+  }
+
+  if (!cash && !btc && !investAmt) return; // nothing entered
 
   try {
     const res = await fetch('/admin/topup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, amount: parseFloat(amount) })
+      body: JSON.stringify({
+        userId,
+        cash: cash ? parseFloat(cash) : 0,
+        btc: btc ? parseFloat(btc) : 0,
+        investmentAmount: investAmt ? parseFloat(investAmt) : 0,
+        investmentPlan: investPlan
+      })
     });
     const data = await res.json();
     showAlert(userAlert, data.message, data.success);
     fetchUsers();
+    fetchInvestments();
   } catch (err) {
     showAlert(userAlert, 'Top up failed', false);
     console.error(err);
   }
-}
-
-// ==========================
-// Add Investment
-// ==========================
-async function addInvestment(userId, amount, plan) {
-  try {
-    const res = await fetch('/admin/investments/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, amount, plan })
-    });
-    const data = await res.json();
-    showAlert(investmentAlert, data.message, data.success);
-    fetchInvestments();
-  } catch (err) {
-    showAlert(investmentAlert, 'Failed to add investment', false);
-    console.error(err);
-  }
-}
-
-// Prompt wrapper
-function addInvestmentPrompt(userId) {
-  const amount = prompt("Enter investment amount:");
-  if (!amount || isNaN(amount)) return;
-  const plan = prompt("Enter plan name (optional):") || "Custom Plan";
-  addInvestment(userId, parseFloat(amount), plan);
 }
 
 // ==========================
@@ -147,11 +134,11 @@ async function fetchWithdrawals() {
 }
 
 // ==========================
-// Approve Withdrawal
+// Approve Withdrawal (Fixed)
 // ==========================
 async function approveWithdrawal(withdrawalId) {
   try {
-    const res = await fetch('/admin/withdrawals/approve', {
+    const res = await fetch('/admin/withdrawals/process', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ withdrawalId })
