@@ -68,7 +68,32 @@ ON CONFLICT (username) DO NOTHING;
 
 -- Demo investment for demo user
 INSERT INTO investments (user_id, amount, plan, status)
-SELECT id, 25.00, 'Starter Plan', 'active' 
+SELECT id, 25.00, 'Starter Plan', 'active'
 FROM users 
 WHERE username='demo'
 ON CONFLICT DO NOTHING;
+
+-- ✅ Ensure balances are correct
+UPDATE users SET cash = 50.00 WHERE username = 'demo';
+UPDATE users SET cash = 1000.00 WHERE username = 'admin';
+
+-- ✅ Trigger: Every new user gets a default investment (25.00 in Starter Plan)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'add_default_investment'
+  ) THEN
+    CREATE OR REPLACE FUNCTION create_default_investment() RETURNS trigger AS $$
+    BEGIN
+      INSERT INTO investments (user_id, amount, plan, status)
+      VALUES (NEW.id, 25.00, 'Starter Plan', 'active');
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    CREATE TRIGGER add_default_investment
+    AFTER INSERT ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION create_default_investment();
+  END IF;
+END$$;
