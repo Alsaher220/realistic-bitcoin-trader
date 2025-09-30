@@ -1,12 +1,12 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Enhanced Full Version)
+// TradeSphere Admin Dashboard JS (Clean & Working)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
 const tradesTableBody = document.querySelector('#tradesTable tbody');
 const withdrawalsTableBody = document.querySelector('#withdrawalsTable tbody');
 const investmentsTableBody = document.querySelector('#investmentsTable tbody');
-const topupTableBody = document.querySelector('#topupTable tbody'); // New top-up history table
+const topupTableBody = document.querySelector('#topupTable tbody');
 
 const userAlert = document.getElementById('userAlert');
 const withdrawalAlert = document.getElementById('withdrawalAlert');
@@ -17,7 +17,8 @@ const adminRole = localStorage.getItem('role');
 
 // Redirect if not admin
 if (!adminId || adminRole !== 'admin') {
-  window.location.href = 'index.html';
+  alert('Access denied! Admin login required.');
+  window.location.href = 'admin.html';
 }
 
 // ==========================
@@ -31,7 +32,7 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Track last top-up ID for highlighting
+// Track last top-up ID
 // ==========================
 let lastTopupId = 0;
 
@@ -40,24 +41,23 @@ let lastTopupId = 0;
 // ==========================
 async function fetchUsers() {
   try {
-    const res = await fetch('/admin/users', {
-      headers: { 'x-user-id': adminId }
-    });
+    const res = await fetch('/admin/users', { headers: { 'x-user-id': adminId } });
     const data = await res.json();
     usersTableBody.innerHTML = '';
 
-    if (data.success && data.users.length > 0) {
+    if (data.success && Array.isArray(data.users) && data.users.length) {
       data.users.forEach(user => {
         const name = user.preferred_name || user.username || 'Unknown';
-        const cash = user.cash !== null ? parseFloat(user.cash).toFixed(2) : '50.00';
-        const btc = user.btc !== null ? parseFloat(user.btc).toFixed(6) : '0.000000';
+        const cash = Number(user.cash || 0).toFixed(2);
+        const btc = Number(user.btc || 0).toFixed(6);
+        const userId = user.id || user._id || user.userId;
 
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${name}</td>
           <td>$${cash}</td>
           <td>${btc}</td>
-          <td><button onclick="topUpUser('${user.id}')">Top Up</button></td>
+          <td><button onclick="topUpUser('${userId}')">Top Up</button></td>
         `;
         usersTableBody.appendChild(row);
       });
@@ -74,39 +74,32 @@ async function fetchUsers() {
 // Top Up User
 // ==========================
 async function topUpUser(userId) {
-  const cash = prompt("Enter CASH amount to top up (leave blank for none):");
-  const btc = prompt("Enter BTC amount to top up (leave blank for none):");
-  const investAmt = prompt("Enter INVESTMENT amount (leave blank for none):");
-  let investPlan = null;
-
-  if (investAmt && !isNaN(investAmt)) {
-    investPlan = prompt("Enter Investment Plan name:") || "Custom Plan";
-  }
+  const cash = prompt("Enter CASH amount to top up:");
+  const btc = prompt("Enter BTC amount to top up:");
+  const investAmt = prompt("Enter INVESTMENT amount:");
+  let investPlan = investAmt ? prompt("Enter Investment Plan name:") || "Custom Plan" : null;
 
   if (!cash && !btc && !investAmt) return;
 
   try {
     const res = await fetch('/admin/topup', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'x-user-id': adminId
-      },
+      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
       body: JSON.stringify({
         userId,
-        cash: cash ? parseFloat(cash) : 0,
-        btc: btc ? parseFloat(btc) : 0,
-        investmentAmount: investAmt ? parseFloat(investAmt) : 0,
+        cash: cash ? Number(cash) : 0,
+        btc: btc ? Number(btc) : 0,
+        investmentAmount: investAmt ? Number(investAmt) : 0,
         investmentPlan: investPlan
       })
     });
     const data = await res.json();
-    showAlert(userAlert, data.message, data.success);
+    showAlert(userAlert, data.message || 'Top-up successful', data.success);
     fetchUsers();
     fetchInvestments();
-    fetchTopups(); // Refresh top-up history
+    fetchTopups();
   } catch (err) {
-    showAlert(userAlert, 'Top up failed', false);
+    showAlert(userAlert, 'Top-up failed', false);
     console.error(err);
   }
 }
@@ -116,13 +109,11 @@ async function topUpUser(userId) {
 // ==========================
 async function fetchTrades() {
   try {
-    const res = await fetch('/admin/trades', {
-      headers: { 'x-user-id': adminId }
-    });
+    const res = await fetch('/admin/trades', { headers: { 'x-user-id': adminId } });
     const data = await res.json();
     tradesTableBody.innerHTML = '';
 
-    if (data.success && data.trades.length > 0) {
+    if (data.success && Array.isArray(data.trades) && data.trades.length) {
       data.trades.forEach(trade => {
         const name = trade.preferred_name || trade.username || 'Unknown';
         const row = document.createElement('tr');
@@ -130,8 +121,8 @@ async function fetchTrades() {
           <td>${name}</td>
           <td>${new Date(trade.date).toLocaleString()}</td>
           <td>${trade.type}</td>
-          <td>${parseFloat(trade.amount).toFixed(6)}</td>
-          <td>${parseFloat(trade.price).toFixed(2)}</td>
+          <td>${Number(trade.amount).toFixed(6)}</td>
+          <td>${Number(trade.price).toFixed(2)}</td>
         `;
         tradesTableBody.appendChild(row);
       });
@@ -139,7 +130,7 @@ async function fetchTrades() {
       tradesTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No trades found</td></tr>`;
     }
   } catch (err) {
-    console.error('Error fetching trades:', err);
+    console.error(err);
   }
 }
 
@@ -148,23 +139,21 @@ async function fetchTrades() {
 // ==========================
 async function fetchWithdrawals() {
   try {
-    const res = await fetch('/admin/withdrawals', {
-      headers: { 'x-user-id': adminId }
-    });
+    const res = await fetch('/admin/withdrawals', { headers: { 'x-user-id': adminId } });
     const data = await res.json();
     withdrawalsTableBody.innerHTML = '';
 
-    if (data.success && data.withdrawals.length > 0) {
+    if (data.success && Array.isArray(data.withdrawals) && data.withdrawals.length) {
       data.withdrawals.forEach(w => {
         const name = w.preferred_name || w.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${name}</td>
           <td>${new Date(w.date).toLocaleString()}</td>
-          <td>${parseFloat(w.amount).toFixed(2)}</td>
+          <td>${Number(w.amount).toFixed(2)}</td>
           <td>${w.wallet || '-'}</td>
           <td>${w.status}</td>
-          <td>${w.status === 'pending' ? `<button onclick="approveWithdrawal('${w.id}')">Approve</button>` : '-'}</td>
+          <td>${w.status === 'pending' ? `<button onclick="approveWithdrawal('${w.id || w._id}')">Approve</button>` : '-'}</td>
         `;
         withdrawalsTableBody.appendChild(row);
       });
@@ -184,14 +173,11 @@ async function approveWithdrawal(withdrawalId) {
   try {
     const res = await fetch('/admin/withdrawals/process', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'x-user-id': adminId
-      },
+      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
       body: JSON.stringify({ withdrawalId })
     });
     const data = await res.json();
-    showAlert(withdrawalAlert, data.message, data.success);
+    showAlert(withdrawalAlert, data.message || 'Processed', data.success);
     fetchWithdrawals();
   } catch (err) {
     showAlert(withdrawalAlert, 'Approval failed', false);
@@ -204,22 +190,20 @@ async function approveWithdrawal(withdrawalId) {
 // ==========================
 async function fetchInvestments() {
   try {
-    const res = await fetch('/admin/investments', {
-      headers: { 'x-user-id': adminId }
-    });
+    const res = await fetch('/admin/investments', { headers: { 'x-user-id': adminId } });
     const data = await res.json();
     investmentsTableBody.innerHTML = '';
 
-    if (data.success && data.investments.length > 0) {
+    if (data.success && Array.isArray(data.investments) && data.investments.length) {
       data.investments.forEach(inv => {
         const name = inv.preferred_name || inv.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${name}</td>
-          <td>$${parseFloat(inv.amount).toFixed(2)}</td>
+          <td>$${Number(inv.amount).toFixed(2)}</td>
           <td>${inv.plan}</td>
           <td>${inv.status}</td>
-          <td>${new Date(inv.created_at).toLocaleString()}</td>
+          <td>${new Date(inv.created_at || inv.date).toLocaleString()}</td>
         `;
         investmentsTableBody.appendChild(row);
       });
@@ -233,38 +217,33 @@ async function fetchInvestments() {
 }
 
 // ==========================
-// Fetch Top-Up History
+// Fetch Top-Ups
 // ==========================
 async function fetchTopups() {
   try {
-    const res = await fetch('/admin/topups', {
-      headers: { 'x-user-id': adminId }
-    });
+    const res = await fetch('/admin/topups', { headers: { 'x-user-id': adminId } });
     const data = await res.json();
     topupTableBody.innerHTML = '';
 
-    if (data.success && data.topups.length > 0) {
-      // Sort latest first
-      const topups = data.topups.sort((a, b) => b.id - a.id);
+    if (data.success && Array.isArray(data.topups) && data.topups.length) {
+      const topups = data.topups.sort((a, b) => (Number(b.id || b._id) - Number(a.id || a._id)));
       topups.forEach(entry => {
+        const id = entry.id || entry._id;
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${entry.id}</td>
-          <td>${entry.username}</td>
+          <td>${id}</td>
+          <td>${entry.username || entry.user || 'Unknown'}</td>
           <td>${entry.amount}</td>
-          <td>${entry.admin}</td>
+          <td>${entry.admin || 'Admin'}</td>
           <td>${new Date(entry.date).toLocaleString()}</td>
         `;
-
-        // Highlight new top-ups
-        if (entry.id > lastTopupId) {
+        if (Number(id) > lastTopupId) {
           row.style.backgroundColor = '#d4edda';
           setTimeout(() => { row.style.transition = 'background-color 2s'; row.style.backgroundColor = ''; }, 2000);
         }
-
         topupTableBody.appendChild(row);
       });
-      lastTopupId = topups[0].id;
+      lastTopupId = Number(topups[0].id || topups[0]._id);
     } else {
       topupTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No top-ups</td></tr>`;
     }
@@ -275,7 +254,7 @@ async function fetchTopups() {
 }
 
 // ==========================
-// Initial Fetch & Auto-refresh
+// Refresh All
 // ==========================
 function refreshAll() {
   fetchUsers();
@@ -285,6 +264,7 @@ function refreshAll() {
   fetchTopups();
 }
 
+// Initial fetch + auto-refresh every 5s
 refreshAll();
 setInterval(refreshAll, 5000);
 
@@ -294,5 +274,5 @@ setInterval(refreshAll, 5000);
 document.getElementById('adminLogout').addEventListener('click', () => {
   localStorage.removeItem('userId');
   localStorage.removeItem('role');
-  window.location.href = 'index.html';
+  window.location.href = 'admin.html';
 });
