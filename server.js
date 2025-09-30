@@ -234,29 +234,48 @@ app.post('/withdraw', async (req, res) => {
 
 // ------------------- ADMIN ROUTES ------------------- //
 
+// Admin Users
 app.get('/admin/users', verifyAdmin, async (req, res) => {
-  const result = await pool.query('SELECT id, username, cash, btc FROM users ORDER BY id ASC');
-  res.json({ users: result.rows });
-});
-
-app.get('/admin/trades', verifyAdmin, async (req, res) => {
-  const result = await pool.query(
-    'SELECT trades.*, users.username FROM trades JOIN users ON trades.user_id=users.id ORDER BY date DESC'
-  );
-  res.json({ trades: result.rows });
-});
-
-app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
-  const result = await pool.query(
-    'SELECT withdrawals.*, users.username FROM withdrawals JOIN users ON withdrawals.user_id=users.id ORDER BY date DESC'
-  );
-  res.json({ withdrawals: result.rows });
-});
-
-app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
-  const { id } = req.body;
   try {
-    await pool.query('UPDATE withdrawals SET status=$1 WHERE id=$2', ['processed', id]);
+    const result = await pool.query('SELECT id, username, cash, btc FROM users ORDER BY id ASC');
+    res.json({ success: true, users: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Failed to fetch users' });
+  }
+});
+
+// Admin Trades
+app.get('/admin/trades', verifyAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT trades.*, users.username FROM trades JOIN users ON trades.user_id=users.id ORDER BY date DESC'
+    );
+    res.json({ success: true, trades: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Failed to fetch trades' });
+  }
+});
+
+// Admin Withdrawals
+app.get('/admin/withdrawals', verifyAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT withdrawals.*, users.username FROM withdrawals JOIN users ON withdrawals.user_id=users.id ORDER BY date DESC'
+    );
+    res.json({ success: true, withdrawals: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Failed to fetch withdrawals' });
+  }
+});
+
+// Withdrawal Processing
+app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
+  const { withdrawalId } = req.body;
+  try {
+    await pool.query('UPDATE withdrawals SET status=$1 WHERE id=$2', ['processed', withdrawalId]);
     res.json({ success: true, message: 'Withdrawal processed' });
   } catch (err) {
     console.error(err);
@@ -264,12 +283,10 @@ app.post('/admin/withdrawals/process', verifyAdmin, async (req, res) => {
   }
 });
 
-// ✅ Updated Admin Top Up (cash, btc, investments)
+// Admin Top Up
 app.post('/admin/topup', verifyAdmin, async (req, res) => {
   const { userId, cash, btc, investmentAmount, investmentPlan } = req.body;
-
   try {
-    // 1. Update cash and btc if provided
     if (cash || btc) {
       await pool.query(
         'UPDATE users SET cash = cash + COALESCE($1,0), btc = btc + COALESCE($2,0) WHERE id=$3',
@@ -277,7 +294,6 @@ app.post('/admin/topup', verifyAdmin, async (req, res) => {
       );
     }
 
-    // 2. Add investment if provided
     if (investmentAmount) {
       await pool.query(
         'INSERT INTO investments (user_id, amount, plan, status) VALUES ($1,$2,$3,$4)',
@@ -292,18 +308,16 @@ app.post('/admin/topup', verifyAdmin, async (req, res) => {
   }
 });
 
-// ✅ Optional: separate investment add route
-app.post('/admin/investments/add', verifyAdmin, async (req, res) => {
-  const { userId, amount, plan } = req.body;
+// Admin Investments
+app.get('/admin/investments', verifyAdmin, async (req, res) => {
   try {
-    await pool.query(
-      'INSERT INTO investments (user_id, amount, plan, status) VALUES ($1,$2,$3,$4)',
-      [userId, amount, plan || 'Custom Plan', 'active']
+    const result = await pool.query(
+      'SELECT investments.*, users.username FROM investments JOIN users ON investments.user_id=users.id ORDER BY created_at DESC'
     );
-    res.json({ success: true, message: 'Investment added successfully' });
+    res.json({ success: true, investments: result.rows });
   } catch (err) {
     console.error(err);
-    res.json({ success: false, message: 'Failed to add investment' });
+    res.json({ success: false, message: 'Failed to fetch investments' });
   }
 });
 
