@@ -14,6 +14,7 @@
   </header>
 
   <div class="container">
+    <!-- Users Section -->
     <h2>Users</h2>
     <div class="alert" id="userAlert" style="display:none;"></div>
     <table id="usersTable">
@@ -28,6 +29,7 @@
       <tbody></tbody>
     </table>
 
+    <!-- Trades Section -->
     <h2>Trades</h2>
     <table id="tradesTable">
       <thead>
@@ -42,6 +44,7 @@
       <tbody></tbody>
     </table>
 
+    <!-- Withdrawals Section -->
     <h2>Withdrawals</h2>
     <div class="alert" id="withdrawalAlert" style="display:none;"></div>
     <table id="withdrawalsTable">
@@ -57,6 +60,22 @@
       </thead>
       <tbody></tbody>
     </table>
+
+    <!-- Investments Section -->
+    <h2>Investments</h2>
+    <div class="alert" id="investmentAlert" style="display:none;"></div>
+    <table id="investmentsTable">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Amount</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
   <!-- =======================
@@ -64,7 +83,8 @@
   ======================= -->
   <script>
     // Protect admin page
-    if (!sessionStorage.getItem('ADMIN_SECRET')) {
+    const adminId = localStorage.getItem('userId');
+    if (!adminId) {
       alert('Access denied! Admin login required.');
       window.location.href = 'admin.html';
     }
@@ -72,15 +92,17 @@
     // Logout functionality
     const logoutBtn = document.getElementById('adminLogout');
     logoutBtn.addEventListener('click', () => {
-      sessionStorage.removeItem('ADMIN_SECRET');
+      localStorage.removeItem('userId');
       window.location.href = 'admin.html';
     });
 
     // Hide alerts initially
     document.getElementById('userAlert').style.display = 'none';
     document.getElementById('withdrawalAlert').style.display = 'none';
+    document.getElementById('investmentAlert').style.display = 'none';
   </script>
 
+  <!-- Link to new admin-dashboard.js -->
   <script src="admin-dashboard.js"></script>
 </body>
 </html>
