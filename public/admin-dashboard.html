@@ -8,13 +8,13 @@
 </head>
 <body>
   <header>
-    <!-- Logo must be in the same folder or adjust the path -->
     <img src="B10CD185-B0B2-4ACF-9906-CF907D46B9D6.png" alt="TradeSphere Logo" id="adminLogo">
     <h1>TradeSphere Admin</h1>
     <button id="adminLogout">Logout</button>
   </header>
 
   <div class="container">
+
     <!-- Users Section -->
     <h2>Users</h2>
     <div class="alert" id="userAlert" style="display:none;"></div>
@@ -97,30 +97,6 @@
   <!-- =======================
        Admin Dashboard Scripts
   ======================= -->
-  <script>
-    // Protect admin page
-    const adminId = localStorage.getItem('userId');
-    const adminRole = localStorage.getItem('role');
-    if (!adminId || adminRole !== 'admin') {
-      alert('Access denied! Admin login required.');
-      window.location.href = 'index.html';
-    }
-
-    // Logout functionality
-    const logoutBtn = document.getElementById('adminLogout');
-    logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('userId');
-      localStorage.removeItem('role');
-      window.location.href = 'index.html';
-    });
-
-    // Hide alerts initially
-    document.getElementById('userAlert').style.display = 'none';
-    document.getElementById('withdrawalAlert').style.display = 'none';
-    document.getElementById('investmentAlert').style.display = 'none';
-  </script>
-
-  <!-- Link to enhanced admin-dashboard.js -->
   <script src="admin-dashboard.js"></script>
 </body>
 </html>
