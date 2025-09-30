@@ -80,9 +80,7 @@ UPDATE users SET cash = 1000.00 WHERE username = 'admin';
 -- ✅ Trigger: Every new user gets a default investment (25.00 in Starter Plan)
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_trigger WHERE tgname = 'add_default_investment'
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'create_default_investment') THEN
     CREATE OR REPLACE FUNCTION create_default_investment() RETURNS trigger AS $$
     BEGIN
       INSERT INTO investments (user_id, amount, plan, status)
@@ -96,4 +94,5 @@ BEGIN
     FOR EACH ROW
     EXECUTE FUNCTION create_default_investment();
   END IF;
-END$$;
+END
+$$ LANGUAGE plpgsql;
