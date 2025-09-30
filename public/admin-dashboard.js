@@ -1,10 +1,6 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Complete)
+// TradeSphere Admin Dashboard JS
 // ==========================
-
-// Check if user is logged in and is admin
-const adminId = localStorage.getItem('userId');
-if (!adminId) window.location.href = 'index.html';
 
 const usersTableBody = document.querySelector('#usersTable tbody');
 const tradesTableBody = document.querySelector('#tradesTable tbody');
@@ -15,16 +11,23 @@ const userAlert = document.getElementById('userAlert');
 const withdrawalAlert = document.getElementById('withdrawalAlert');
 const investmentAlert = document.getElementById('investmentAlert');
 
-const autoRefreshInterval = 5000;
+const adminId = localStorage.getItem('userId');
+const adminRole = localStorage.getItem('role');
+
+// Redirect if not admin
+if (!adminId || adminRole !== 'admin') {
+  window.location.href = 'index.html';
+}
 
 // ==========================
 // Fetch and Display Users
 // ==========================
 async function fetchUsers() {
   try {
-    const res = await fetch('/admin/users'); // Server must return all users with username, cash, btc, withdrawals[], investments[]
+    const res = await fetch('/admin/users', {
+      headers: { 'x-user-id': adminId }
+    });
     const data = await res.json();
-
     usersTableBody.innerHTML = '';
     if (data.success) {
       data.users.forEach(user => {
@@ -37,9 +40,7 @@ async function fetchUsers() {
           <td>${user.username}</td>
           <td>$${cash}</td>
           <td>${btc}</td>
-          <td>
-            <button onclick="topUpUser('${user.id}')">Top Up</button>
-          </td>
+          <td><button onclick="topUpUser('${user.id}')">Top Up</button></td>
         `;
         usersTableBody.appendChild(row);
       });
@@ -53,7 +54,7 @@ async function fetchUsers() {
 }
 
 // ==========================
-// Top Up User
+// Top Up User (Cash, BTC, Investment)
 // ==========================
 async function topUpUser(userId) {
   const cash = prompt("Enter CASH amount to top up (leave blank for none):");
@@ -70,7 +71,10 @@ async function topUpUser(userId) {
   try {
     const res = await fetch('/admin/topup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-user-id': adminId
+      },
       body: JSON.stringify({
         userId,
         cash: cash ? parseFloat(cash) : 0,
@@ -94,7 +98,9 @@ async function topUpUser(userId) {
 // ==========================
 async function fetchTrades() {
   try {
-    const res = await fetch('/admin/trades');
+    const res = await fetch('/admin/trades', {
+      headers: { 'x-user-id': adminId }
+    });
     const data = await res.json();
     tradesTableBody.innerHTML = '';
     if (data.success) {
@@ -120,7 +126,9 @@ async function fetchTrades() {
 // ==========================
 async function fetchWithdrawals() {
   try {
-    const res = await fetch('/admin/withdrawals');
+    const res = await fetch('/admin/withdrawals', {
+      headers: { 'x-user-id': adminId }
+    });
     const data = await res.json();
     withdrawalsTableBody.innerHTML = '';
     if (data.success) {
@@ -152,7 +160,10 @@ async function approveWithdrawal(withdrawalId) {
   try {
     const res = await fetch('/admin/withdrawals/process', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-user-id': adminId
+      },
       body: JSON.stringify({ withdrawalId })
     });
     const data = await res.json();
@@ -169,7 +180,9 @@ async function approveWithdrawal(withdrawalId) {
 // ==========================
 async function fetchInvestments() {
   try {
-    const res = await fetch('/admin/investments');
+    const res = await fetch('/admin/investments', {
+      headers: { 'x-user-id': adminId }
+    });
     const data = await res.json();
     investmentsTableBody.innerHTML = '';
     if (data.success) {
@@ -192,7 +205,7 @@ async function fetchInvestments() {
 }
 
 // ==========================
-// Show Alert
+// Show Alert Function
 // ==========================
 function showAlert(element, message, isSuccess = true) {
   element.textContent = message;
@@ -202,15 +215,7 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Logout Button
-// ==========================
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  localStorage.removeItem('userId');
-  window.location.href = 'index.html';
-});
-
-// ==========================
-// Initial Fetch + Auto-Refresh
+// Initial Fetch & Auto-refresh
 // ==========================
 fetchUsers();
 fetchTrades();
@@ -222,4 +227,13 @@ setInterval(() => {
   fetchTrades();
   fetchWithdrawals();
   fetchInvestments();
-}, autoRefreshInterval);
+}, 5000);
+
+// ==========================
+// Logout
+// ==========================
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  localStorage.removeItem('userId');
+  localStorage.removeItem('role');
+  window.location.href = 'index.html';
+});
