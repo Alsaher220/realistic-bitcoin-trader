@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Clean & Working)
+// TradeSphere Admin Dashboard JS (Full Version)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -32,7 +32,7 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Track last top-up ID
+// Track last top-up ID for highlight
 // ==========================
 let lastTopupId = 0;
 
@@ -254,7 +254,7 @@ async function fetchTopups() {
 }
 
 // ==========================
-// Refresh All
+// Refresh All Data
 // ==========================
 function refreshAll() {
   fetchUsers();
