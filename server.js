@@ -23,6 +23,29 @@ pool.connect()
   })
   .catch(err => console.error("Postgres connection error:", err.stack));
 
+// ------------------- SEED EXISTING USERS -------------------
+(async () => {
+  try {
+    // Ensure preferred_name is set
+    await pool.query(`
+      UPDATE users
+      SET preferred_name = username
+      WHERE preferred_name IS NULL
+    `);
+
+    // Ensure all users have at least $50 cash
+    await pool.query(`
+      UPDATE users
+      SET cash = 50
+      WHERE cash IS NULL OR cash < 50
+    `);
+
+    console.log("Existing users fixed: preferred_name and cash ensured.");
+  } catch (err) {
+    console.error("Error seeding existing users:", err.stack);
+  }
+})();
+
 // ------------------- MIDDLEWARE -------------------
 app.use(cors());
 app.use(bodyParser.json());
@@ -104,7 +127,7 @@ app.post('/login', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get user info
+// Get user info + withdrawals + investments
 app.get('/user/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userRes = await pool.query(
@@ -114,11 +137,11 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
   const user = userRes.rows[0];
   if (!user) return res.json({ success: false, message: 'User not found' });
 
-  // Get withdrawals & investments
   const withdrawalsRes = await pool.query(
     'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
     [id]
   );
+
   const investmentsRes = await pool.query(
     'SELECT plan, amount, status, created_at FROM investments WHERE user_id=$1 ORDER BY created_at DESC',
     [id]
