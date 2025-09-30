@@ -29,16 +29,16 @@ async function fetchUserData() {
     const user = data.user;
 
     // Display preferred name if available, otherwise username
-    usernameSpan.textContent = user.preferredName || user.username || 'Unknown';
+    usernameSpan.textContent = user.preferred_name || user.preferredName || user.username || 'Unknown';
 
     // Cash with fallback
     let cash = parseFloat(user.cash);
-    if (isNaN(cash)) cash = START_CASH;
+    if (isNaN(cash) || cash === null) cash = START_CASH;
     cashSpan.textContent = cash.toFixed(2);
 
     // BTC
     let btc = parseFloat(user.btc);
-    if (isNaN(btc)) btc = 0;
+    if (isNaN(btc) || btc === null) btc = 0;
     btcSpan.textContent = btc.toFixed(6);
 
     // Withdrawals & Investments
