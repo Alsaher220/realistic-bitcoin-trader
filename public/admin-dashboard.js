@@ -20,6 +20,16 @@ if (!adminId || adminRole !== 'admin') {
 }
 
 // ==========================
+// Show Alert Function
+// ==========================
+function showAlert(element, message, isSuccess = true) {
+  element.textContent = message;
+  element.className = `alert ${isSuccess ? 'success' : 'error'}`;
+  element.style.display = 'block';
+  setTimeout(() => { element.style.display = 'none'; }, 3000);
+}
+
+// ==========================
 // Fetch and Display Users
 // ==========================
 async function fetchUsers() {
@@ -29,14 +39,16 @@ async function fetchUsers() {
     });
     const data = await res.json();
     usersTableBody.innerHTML = '';
+
     if (data.success && data.users.length > 0) {
       data.users.forEach(user => {
+        const username = user.username || 'Unknown';
         const cash = user.cash !== null ? parseFloat(user.cash).toFixed(2) : '50.00';
         const btc = user.btc !== null ? parseFloat(user.btc).toFixed(6) : '0.000000';
 
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${user.username}</td>
+          <td>${username}</td>
           <td>$${cash}</td>
           <td>${btc}</td>
           <td><button onclick="topUpUser('${user.id}')">Top Up</button></td>
@@ -102,11 +114,13 @@ async function fetchTrades() {
     });
     const data = await res.json();
     tradesTableBody.innerHTML = '';
+
     if (data.success && data.trades.length > 0) {
       data.trades.forEach(trade => {
+        const username = trade.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${trade.username}</td>
+          <td>${username}</td>
           <td>${new Date(trade.date).toLocaleString()}</td>
           <td>${trade.type}</td>
           <td>${parseFloat(trade.amount).toFixed(6)}</td>
@@ -132,18 +146,18 @@ async function fetchWithdrawals() {
     });
     const data = await res.json();
     withdrawalsTableBody.innerHTML = '';
+
     if (data.success && data.withdrawals.length > 0) {
       data.withdrawals.forEach(w => {
+        const username = w.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${w.username}</td>
+          <td>${username}</td>
           <td>${new Date(w.date).toLocaleString()}</td>
           <td>${parseFloat(w.amount).toFixed(2)}</td>
           <td>${w.wallet || '-'}</td>
           <td>${w.status}</td>
-          <td>
-            ${w.status === 'pending' ? `<button onclick="approveWithdrawal('${w.id}')">Approve</button>` : '-'}
-          </td>
+          <td>${w.status === 'pending' ? `<button onclick="approveWithdrawal('${w.id}')">Approve</button>` : '-'}</td>
         `;
         withdrawalsTableBody.appendChild(row);
       });
@@ -188,11 +202,13 @@ async function fetchInvestments() {
     });
     const data = await res.json();
     investmentsTableBody.innerHTML = '';
+
     if (data.success && data.investments.length > 0) {
       data.investments.forEach(inv => {
+        const username = inv.username || 'Unknown';
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${inv.username}</td>
+          <td>${username}</td>
           <td>$${parseFloat(inv.amount).toFixed(2)}</td>
           <td>${inv.plan}</td>
           <td>${inv.status}</td>
@@ -207,16 +223,6 @@ async function fetchInvestments() {
     showAlert(investmentAlert, 'Error fetching investments', false);
     console.error(err);
   }
-}
-
-// ==========================
-// Show Alert Function
-// ==========================
-function showAlert(element, message, isSuccess = true) {
-  element.textContent = message;
-  element.className = `alert ${isSuccess ? 'success' : 'error'}`;
-  element.style.display = 'block';
-  setTimeout(() => { element.style.display = 'none'; }, 3000);
 }
 
 // ==========================
