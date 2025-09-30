@@ -80,7 +80,56 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Get user portfolio
+// ✅ FIX: Add missing dashboard endpoints
+
+// Get user basic info
+app.get('/user/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const userRes = await pool.query(
+      'SELECT id, username, cash, btc FROM users WHERE id=$1',
+      [id]
+    );
+    const user = userRes.rows[0];
+    if (!user) return res.json({ success: false, message: 'User not found' });
+    res.json({ success: true, user });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Error fetching user' });
+  }
+});
+
+// Get user withdrawals
+app.get('/user/:id/withdrawals', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
+      [id]
+    );
+    res.json({ success: true, withdrawals: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Error fetching withdrawals' });
+  }
+});
+
+// Get user investments
+app.get('/user/:id/investments', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT plan, amount, status, created_at FROM investments WHERE user_id=$1 ORDER BY created_at DESC',
+      [id]
+    );
+    res.json({ success: true, investments: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false, message: 'Error fetching investments' });
+  }
+});
+
+// Get user portfolio (still kept for admin or extended views)
 app.get('/user/:id/portfolio', async (req, res) => {
   const { id } = req.params;
   try {
