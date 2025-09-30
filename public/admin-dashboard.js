@@ -5,9 +5,11 @@
 const usersTableBody = document.querySelector('#usersTable tbody');
 const tradesTableBody = document.querySelector('#tradesTable tbody');
 const withdrawalsTableBody = document.querySelector('#withdrawalsTable tbody');
+const investmentsTableBody = document.querySelector('#investmentsTable tbody');
 
 const userAlert = document.getElementById('userAlert');
 const withdrawalAlert = document.getElementById('withdrawalAlert');
+const investmentAlert = document.getElementById('investmentAlert');
 
 // ==========================
 // Fetch and Display Users
@@ -21,11 +23,13 @@ async function fetchUsers() {
       data.users.forEach(user => {
         const row = document.createElement('tr');
         row.innerHTML = `
+          <td>${user.id}</td>
           <td>${user.username}</td>
           <td>$${parseFloat(user.cash).toFixed(2)}</td>
           <td>${parseFloat(user.btc).toFixed(6)}</td>
           <td>
             <button onclick="topUpUser('${user.id}')">Top Up</button>
+            <button onclick="addInvestmentPrompt('${user.id}')">Add Investment</button>
           </td>
         `;
         usersTableBody.appendChild(row);
@@ -57,6 +61,33 @@ async function topUpUser(userId) {
     showAlert(userAlert, 'Top up failed', false);
     console.error(err);
   }
+}
+
+// ==========================
+// Add Investment
+// ==========================
+async function addInvestment(userId, amount, plan) {
+  try {
+    const res = await fetch('/admin/investments/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, amount, plan })
+    });
+    const data = await res.json();
+    showAlert(investmentAlert, data.message, data.success);
+    fetchInvestments();
+  } catch (err) {
+    showAlert(investmentAlert, 'Failed to add investment', false);
+    console.error(err);
+  }
+}
+
+// Prompt wrapper
+function addInvestmentPrompt(userId) {
+  const amount = prompt("Enter investment amount:");
+  if (!amount || isNaN(amount)) return;
+  const plan = prompt("Enter plan name (optional):") || "Custom Plan";
+  addInvestment(userId, parseFloat(amount), plan);
 }
 
 // ==========================
@@ -135,6 +166,33 @@ async function approveWithdrawal(withdrawalId) {
 }
 
 // ==========================
+// Fetch and Display Investments
+// ==========================
+async function fetchInvestments() {
+  try {
+    const res = await fetch('/admin/investments');
+    const data = await res.json();
+    investmentsTableBody.innerHTML = '';
+    if (data.success) {
+      data.investments.forEach(inv => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${inv.username}</td>
+          <td>$${parseFloat(inv.amount).toFixed(2)}</td>
+          <td>${inv.plan}</td>
+          <td>${inv.status}</td>
+          <td>${new Date(inv.created_at).toLocaleString()}</td>
+        `;
+        investmentsTableBody.appendChild(row);
+      });
+    }
+  } catch (err) {
+    showAlert(investmentAlert, 'Error fetching investments', false);
+    console.error(err);
+  }
+}
+
+// ==========================
 // Show Alert Function
 // ==========================
 function showAlert(element, message, isSuccess = true) {
@@ -150,10 +208,12 @@ function showAlert(element, message, isSuccess = true) {
 fetchUsers();
 fetchTrades();
 fetchWithdrawals();
+fetchInvestments();
 
 // Optional: auto-refresh every 5-10 seconds
 setInterval(() => {
   fetchUsers();
   fetchTrades();
   fetchWithdrawals();
+  fetchInvestments();
 }, 5000);
