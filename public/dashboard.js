@@ -19,11 +19,11 @@ const START_CASH = 50;
 // Fetch user portfolio and render dashboard
 async function fetchUserData() {
   try {
-    const res = await fetch(`/user/${userId}/portfolio`);
+    const res = await fetch(`/user/${userId}`);
     const data = await res.json();
 
     if (data.success) {
-      const user = data.portfolio.user;
+      const user = data.user;
 
       // Username
       usernameSpan.textContent = user.username;
@@ -37,8 +37,8 @@ async function fetchUserData() {
       btcSpan.textContent = parseFloat(user.btc || 0).toFixed(6);
 
       // Withdrawals & Investments
-      renderWithdrawals(data.portfolio.withdrawals || []);
-      renderInvestments(data.portfolio.investments || []);
+      renderWithdrawals(data.withdrawals || []);
+      renderInvestments(data.investments || []);
     }
   } catch (err) {
     console.error("Error fetching portfolio:", err);
@@ -151,7 +151,7 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
   } catch (err) {
     showAlert(withdrawAlert, 'Error requesting withdrawal', false);
   }
-});
+}
 
 // Initial fetch + auto-refresh
 fetchUserData();
