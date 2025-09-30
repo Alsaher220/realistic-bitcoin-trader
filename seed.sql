@@ -1,55 +1,29 @@
--- seed_with_preferred_name.sql
+-- ===========================
+-- Safe seed for TradeSphere
+-- ===========================
 
+-- 1️⃣ Ensure pgcrypto extension exists
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- USERS table
-CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
-  preferred_name TEXT,
-  password TEXT NOT NULL,
-  role TEXT DEFAULT 'user',
-  cash NUMERIC(18,2) DEFAULT 50,
-  btc NUMERIC(18,8) DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
+-- 2️⃣ Add preferred_name column if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name='users' AND column_name='preferred_name'
+    ) THEN
+        ALTER TABLE users ADD COLUMN preferred_name TEXT;
+    END IF;
+END
+$$;
 
--- TRADES table
-CREATE TABLE IF NOT EXISTS trades (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,
-  amount NUMERIC(18,8) NOT NULL,
-  price NUMERIC(18,2) NOT NULL,
-  date TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- WITHDRAWALS table
-CREATE TABLE IF NOT EXISTS withdrawals (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  amount NUMERIC(18,2) NOT NULL,
-  wallet TEXT,
-  status TEXT DEFAULT 'pending',
-  date TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- INVESTMENTS table
-CREATE TABLE IF NOT EXISTS investments (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  amount NUMERIC(18,2) NOT NULL,
-  plan TEXT DEFAULT 'Starter Plan',
-  status TEXT DEFAULT 'active',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- Admin user (Alsaher) — REPLACE PASSWORD BELOW
+-- 3️⃣ Admin user
 INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'Alsaher',
-  'Alsaher',  -- preferred_name
-  crypt('SaTURn1447', gen_salt('bf')), -- <-- replace with your password
+  'Alsaher',
+  crypt('YOUR_ADMIN_PASSWORD_HERE', gen_salt('bf')), -- replace with your actual password
   'admin',
   1000.00,
   10.00
@@ -61,7 +35,7 @@ SET password = EXCLUDED.password,
     role = EXCLUDED.role,
     preferred_name = EXCLUDED.preferred_name;
 
--- Demo user
+-- 4️⃣ Demo user
 INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'demo',
@@ -73,18 +47,18 @@ VALUES (
 )
 ON CONFLICT (username) DO NOTHING;
 
--- Demo investment for demo user
+-- 5️⃣ Demo investment for demo user
 INSERT INTO investments (user_id, amount, plan, status)
 SELECT id, 25.00, 'Starter Plan', 'active'
 FROM users 
 WHERE username='demo'
 ON CONFLICT DO NOTHING;
 
--- Ensure balances
+-- 6️⃣ Ensure balances
 UPDATE users SET cash = 50.00 WHERE username = 'demo';
 UPDATE users SET cash = 1000.00 WHERE username = 'Alsaher';
 
--- Default investment trigger
+-- 7️⃣ Default investment trigger
 CREATE OR REPLACE FUNCTION create_default_investment() RETURNS trigger AS $$
 BEGIN
   INSERT INTO investments (user_id, amount, plan, status)
