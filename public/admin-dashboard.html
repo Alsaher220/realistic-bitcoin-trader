@@ -8,7 +8,8 @@
 </head>
 <body>
   <header>
-    <img src="B10CD185-B0B2-4ACF-9906-CF907D46B9D6.png" alt="TradeSphere Logo">
+    <!-- Logo must be in the same folder or adjust the path -->
+    <img src="B10CD185-B0B2-4ACF-9906-CF907D46B9D6.png" alt="TradeSphere Logo" id="adminLogo">
     <h1>TradeSphere Admin</h1>
     <button id="adminLogout">Logout</button>
   </header>
@@ -17,7 +18,7 @@
     <!-- Users Section -->
     <h2>Users</h2>
     <div class="alert" id="userAlert" style="display:none;"></div>
-    <table id="usersTable">
+    <table id="usersTable" border="1">
       <thead>
         <tr>
           <th>Username</th>
@@ -31,7 +32,7 @@
 
     <!-- Trades Section -->
     <h2>Trades</h2>
-    <table id="tradesTable">
+    <table id="tradesTable" border="1">
       <thead>
         <tr>
           <th>User</th>
@@ -47,7 +48,7 @@
     <!-- Withdrawals Section -->
     <h2>Withdrawals</h2>
     <div class="alert" id="withdrawalAlert" style="display:none;"></div>
-    <table id="withdrawalsTable">
+    <table id="withdrawalsTable" border="1">
       <thead>
         <tr>
           <th>User</th>
@@ -64,7 +65,7 @@
     <!-- Investments Section -->
     <h2>Investments</h2>
     <div class="alert" id="investmentAlert" style="display:none;"></div>
-    <table id="investmentsTable">
+    <table id="investmentsTable" border="1">
       <thead>
         <tr>
           <th>User</th>
@@ -102,7 +103,7 @@
     const adminRole = localStorage.getItem('role');
     if (!adminId || adminRole !== 'admin') {
       alert('Access denied! Admin login required.');
-      window.location.href = 'admin.html';
+      window.location.href = 'index.html';
     }
 
     // Logout functionality
@@ -110,7 +111,7 @@
     logoutBtn.addEventListener('click', () => {
       localStorage.removeItem('userId');
       localStorage.removeItem('role');
-      window.location.href = 'admin.html';
+      window.location.href = 'index.html';
     });
 
     // Hide alerts initially
