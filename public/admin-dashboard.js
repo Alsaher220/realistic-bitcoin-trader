@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Full & Fixed Top-Up + Support)
+// TradeSphere Admin Dashboard JS (Support Fixed Only)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -37,224 +37,6 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Fetch Users (show actual usernames)
-// ==========================
-async function fetchUsers() {
-  try {
-    const res = await fetch('/admin/users', { headers: { 'x-user-id': adminId } });
-    const data = await res.json();
-    usersTableBody.innerHTML = '';
-
-    if (data.success && Array.isArray(data.users) && data.users.length) {
-      data.users.forEach(user => {
-        const username = user.username || 'Unknown';
-        const cash = Number(user.cash || 0).toFixed(2);
-        const btc = Number(user.btc || 0).toFixed(6);
-        const userId = user.id || user._id || user.userId;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${username}</td>
-          <td>$${cash}</td>
-          <td>${btc}</td>
-          <td><button onclick="topUpUser('${userId}')">Top Up</button></td>
-        `;
-        usersTableBody.appendChild(row);
-      });
-    } else {
-      usersTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No users found</td></tr>`;
-    }
-  } catch (err) {
-    showAlert(userAlert, 'Error fetching users', false);
-    console.error(err);
-  }
-}
-
-// ==========================
-// Top Up User (updates table immediately)
-// ==========================
-async function topUpUser(userId) {
-  const cash = prompt("Enter CASH amount to top up:");
-  const btc = prompt("Enter BTC amount to top up:");
-  const investAmt = prompt("Enter INVESTMENT amount:");
-  let investPlan = investAmt ? prompt("Enter Investment Plan name:") || "Custom Plan" : null;
-
-  if (!cash && !btc && !investAmt) return;
-
-  try {
-    const res = await fetch('/admin/topup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
-      body: JSON.stringify({
-        userId,
-        cash: cash ? Number(cash) : 0,
-        btc: btc ? Number(btc) : 0,
-        investmentAmount: investAmt ? Number(investAmt) : 0,
-        investmentPlan: investPlan
-      })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showAlert(userAlert, data.message || 'Top-up successful', true);
-      // Immediately update the user in the table
-      fetchUsers();
-      fetchInvestments();
-      fetchTopups();
-    } else {
-      showAlert(userAlert, data.message || 'Top-up failed', false);
-    }
-  } catch (err) {
-    showAlert(userAlert, 'Top-up failed', false);
-    console.error(err);
-  }
-}
-
-// ==========================
-// Fetch Trades
-// ==========================
-async function fetchTrades() {
-  try {
-    const res = await fetch('/admin/trades', { headers: { 'x-user-id': adminId } });
-    const data = await res.json();
-    tradesTableBody.innerHTML = '';
-
-    if (data.success && Array.isArray(data.trades) && data.trades.length) {
-      data.trades.forEach(trade => {
-        const username = trade.username || 'Unknown';
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${username}</td>
-          <td>${new Date(trade.date).toLocaleString()}</td>
-          <td>${trade.type}</td>
-          <td>${Number(trade.amount).toFixed(6)}</td>
-          <td>${Number(trade.price).toFixed(2)}</td>
-        `;
-        tradesTableBody.appendChild(row);
-      });
-    } else {
-      tradesTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No trades found</td></tr>`;
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-// ==========================
-// Fetch Withdrawals
-// ==========================
-async function fetchWithdrawals() {
-  try {
-    const res = await fetch('/admin/withdrawals', { headers: { 'x-user-id': adminId } });
-    const data = await res.json();
-    withdrawalsTableBody.innerHTML = '';
-
-    if (data.success && Array.isArray(data.withdrawals) && data.withdrawals.length) {
-      data.withdrawals.forEach(w => {
-        const username = w.username || 'Unknown';
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${username}</td>
-          <td>${new Date(w.date).toLocaleString()}</td>
-          <td>${Number(w.amount).toFixed(2)}</td>
-          <td>${w.wallet || '-'}</td>
-          <td>${w.status}</td>
-          <td>${w.status === 'pending' ? `<button onclick="approveWithdrawal('${w.id || w._id}')">Approve</button>` : '-'}</td>
-        `;
-        withdrawalsTableBody.appendChild(row);
-      });
-    } else {
-      withdrawalsTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No withdrawals</td></tr>`;
-    }
-  } catch (err) {
-    showAlert(withdrawalAlert, 'Error fetching withdrawals', false);
-    console.error(err);
-  }
-}
-
-// ==========================
-// Approve Withdrawal
-// ==========================
-async function approveWithdrawal(withdrawalId) {
-  try {
-    const res = await fetch('/admin/withdrawals/process', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
-      body: JSON.stringify({ withdrawalId })
-    });
-    const data = await res.json();
-    showAlert(withdrawalAlert, data.message || 'Processed', data.success);
-    fetchWithdrawals();
-  } catch (err) {
-    showAlert(withdrawalAlert, 'Approval failed', false);
-    console.error(err);
-  }
-}
-
-// ==========================
-// Fetch Investments
-// ==========================
-async function fetchInvestments() {
-  try {
-    const res = await fetch('/admin/investments', { headers: { 'x-user-id': adminId } });
-    const data = await res.json();
-    investmentsTableBody.innerHTML = '';
-
-    if (data.success && Array.isArray(data.investments) && data.investments.length) {
-      data.investments.forEach(inv => {
-        const username = inv.username || 'Unknown';
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${username}</td>
-          <td>$${Number(inv.amount).toFixed(2)}</td>
-          <td>${inv.plan}</td>
-          <td>${inv.status}</td>
-          <td>${new Date(inv.created_at || inv.date).toLocaleString()}</td>
-        `;
-        investmentsTableBody.appendChild(row);
-      });
-    } else {
-      investmentsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No investments</td></tr>`;
-    }
-  } catch (err) {
-    showAlert(investmentAlert, 'Error fetching investments', false);
-    console.error(err);
-  }
-}
-
-// ==========================
-// Fetch Top-Ups
-// ==========================
-async function fetchTopups() {
-  try {
-    const res = await fetch('/admin/topups', { headers: { 'x-user-id': adminId } });
-    const data = await res.json();
-    topupTableBody.innerHTML = '';
-
-    if (data.success && Array.isArray(data.topups) && data.topups.length) {
-      const topups = data.topups.sort((a, b) => (Number(b.id || b._id) - Number(a.id || a._id)));
-      topups.forEach(entry => {
-        const id = entry.id || entry._id;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${id}</td>
-          <td>${entry.username || entry.user || 'Unknown'}</td>
-          <td>${entry.amount}</td>
-          <td>${entry.admin || entry.admin_id || 'Admin'}</td>
-          <td>${new Date(entry.date).toLocaleString()}</td>
-        `;
-        topupTableBody.appendChild(row);
-      });
-      lastTopupId = Number(topups[0].id || topups[0]._id);
-    } else {
-      topupTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No top-ups</td></tr>`;
-    }
-  } catch (err) {
-    console.error('Error fetching top-ups:', err);
-    topupTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Failed to load top-up history.</td></tr>`;
-  }
-}
-
-// ==========================
 // Support Messages
 // ==========================
 async function fetchSupportMessages() {
@@ -269,10 +51,10 @@ async function fetchSupportMessages() {
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${msg.username || 'Unknown'}</td>
-          <td style="text-align:left;">${escapeHtml(msg.message)}</td>
+          <td style="text-align:left; white-space: pre-wrap;">${escapeHtml(msg.message)}</td>
           <td>${msg.sender}</td>
           <td>${new Date(msg.created_at).toLocaleString()}</td>
-          <td><button onclick="replySupport(${msg.user_id}, ${msg.id})">Reply</button></td>
+          <td><button onclick="replySupport('${msg.user_id}', '${msg.id}')">Reply</button></td>
         `;
         supportTableBody.appendChild(row);
       });
@@ -321,7 +103,7 @@ function escapeHtml(unsafe) {
 }
 
 // ==========================
-// Refresh All
+// Refresh All (keep other refresh logic as is)
 // ==========================
 function refreshAll() {
   fetchUsers();
@@ -329,7 +111,7 @@ function refreshAll() {
   fetchWithdrawals();
   fetchInvestments();
   fetchTopups();
-  fetchSupportMessages(); // added support fetch
+  fetchSupportMessages(); // fixed support fetch
 }
 
 // Initial fetch + auto-refresh every 5s
