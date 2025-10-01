@@ -151,35 +151,7 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// Buy BTC
-app.post('/buy', asyncHandler(async (req, res) => {
-  const { userId, amount, price } = req.body;
-  const cost = amount * price;
-  const userRes = await pool.query('SELECT cash, btc FROM users WHERE id=$1', [userId]);
-  const user = userRes.rows[0];
-  if (!user) return res.json({ success: false, message: 'User not found' });
-  if (user.cash < cost) return res.json({ success: false, message: 'Insufficient cash' });
-
-  await pool.query('UPDATE users SET cash=cash-$1, btc=btc+$2 WHERE id=$3', [cost, amount, userId]);
-  await pool.query('INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)', [userId, 'buy', amount, price]);
-
-  res.json({ success: true, message: 'BTC purchased!' });
-}));
-
-// Sell BTC
-app.post('/sell', asyncHandler(async (req, res) => {
-  const { userId, amount, price } = req.body;
-  const userRes = await pool.query('SELECT btc, cash FROM users WHERE id=$1', [userId]);
-  const user = userRes.rows[0];
-  if (!user) return res.json({ success: false, message: 'User not found' });
-  if (user.btc < amount) return res.json({ success: false, message: 'Insufficient BTC' });
-
-  const gain = amount * price;
-  await pool.query('UPDATE users SET cash=cash+$1, btc=btc-$2 WHERE id=$3', [gain, amount, userId]);
-  await pool.query('INSERT INTO trades (user_id, type, amount, price) VALUES ($1,$2,$3,$4)', [userId, 'sell', amount, price]);
-
-  res.json({ success: true, message: 'BTC sold!' });
-}));
+// ❌ Removed Buy BTC & Sell BTC endpoints
 
 // Withdraw
 app.post('/withdraw', asyncHandler(async (req, res) => {
@@ -193,6 +165,32 @@ app.post('/withdraw', asyncHandler(async (req, res) => {
   await pool.query('INSERT INTO withdrawals (user_id, amount, wallet, status, date) VALUES ($1,$2,$3,$4,NOW())', [userId, amount, wallet, 'pending']);
 
   res.json({ success: true, message: 'Withdrawal requested!' });
+}));
+
+// ------------------- SUPPORT ROUTES -------------------
+
+// User sends message
+app.post('/support/message', asyncHandler(async (req, res) => {
+  const { userId, message } = req.body;
+  if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
+
+  await pool.query(
+    'INSERT INTO support_messages (user_id, message, created_at) VALUES ($1,$2,NOW())',
+    [userId, message]
+  );
+
+  res.json({ success: true, message: 'Support message sent!' });
+}));
+
+// Admin views messages
+app.get('/admin/support', verifyAdmin, asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT s.id, s.message, s.created_at, u.username 
+    FROM support_messages s
+    JOIN users u ON s.user_id = u.id
+    ORDER BY s.created_at DESC
+  `);
+  res.json({ success: true, messages: result.rows });
 }));
 
 // ------------------- ADMIN ROUTES -------------------
@@ -223,7 +221,6 @@ app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
     );
   }
 
-  // ✅ Fixed column names to match SQL
   await pool.query(
     'INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())',
     [userId, Number(cash) + Number(btc), adminUserId]
