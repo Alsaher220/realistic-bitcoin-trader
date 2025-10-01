@@ -14,6 +14,7 @@ const buyAlert = document.getElementById('buyAlert');
 const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
 const supportAlert = document.getElementById('supportAlert'); // Support feedback
+const supportMessagesBox = document.getElementById('supportMessages');
 
 const START_CASH = 50;
 
@@ -45,6 +46,9 @@ async function fetchUserData() {
     // Withdrawals & Investments
     renderWithdrawals(data.withdrawals || []);
     renderInvestments(data.investments || []);
+
+    // Support Messages
+    renderSupportMessages(data.supportMessages || []);
   } catch (err) {
     console.error('Error fetching user data:', err);
   }
@@ -92,6 +96,34 @@ function renderInvestments(investments = []) {
     `;
     investmentsTable.appendChild(row);
   });
+}
+
+// ==========================
+// Render Support Messages
+// ==========================
+function renderSupportMessages(messages = []) {
+  if (!supportMessagesBox) return;
+
+  supportMessagesBox.innerHTML = '';
+  if (messages.length === 0) {
+    supportMessagesBox.innerHTML = `<p style="text-align:center;color:#666;">No messages yet.</p>`;
+    return;
+  }
+
+  messages.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = 'support-message';
+    div.style.borderBottom = '1px solid #ddd';
+    div.style.padding = '5px 0';
+    div.innerHTML = `
+      <strong>${msg.from === 'user' ? 'You' : 'Support'}:</strong> ${msg.text}<br>
+      <small style="color:#888;">${new Date(msg.date || Date.now()).toLocaleString()}</small>
+    `;
+    supportMessagesBox.appendChild(div);
+  });
+
+  // Auto-scroll to latest message
+  supportMessagesBox.scrollTop = supportMessagesBox.scrollHeight;
 }
 
 // ==========================
@@ -177,6 +209,7 @@ document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
 document.getElementById('supportForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const message = document.getElementById('supportMessage').value;
+
   try {
     const res = await fetch('/support', {
       method: 'POST',
@@ -184,8 +217,20 @@ document.getElementById('supportForm')?.addEventListener('submit', async e => {
       body: JSON.stringify({ userId, message })
     });
     const data = await res.json();
-    showAlert(supportAlert, data.message || 'Message sent to support!', data.success);
-    e.target.reset();
+
+    if (data.success) {
+      showAlert(supportAlert, data.message || 'Message sent to support!', true);
+
+      // Append the new message to the messages box
+      const newMsg = { from: 'user', text: message, date: Date.now() };
+      renderSupportMessages([...supportMessagesBox._currentMessages || [], newMsg]);
+      // Save current messages for next update
+      supportMessagesBox._currentMessages = [...supportMessagesBox._currentMessages || [], newMsg];
+
+      document.getElementById('supportMessage').value = '';
+    } else {
+      showAlert(supportAlert, data.message || 'Failed to send message', false);
+    }
   } catch (err) {
     showAlert(supportAlert, 'Error sending support message', false);
   }
