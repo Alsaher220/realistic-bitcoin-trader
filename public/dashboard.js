@@ -13,6 +13,7 @@ const investmentsTable = document.querySelector('#investmentsTable tbody');
 const buyAlert = document.getElementById('buyAlert');
 const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
+const supportAlert = document.getElementById('supportAlert'); // Support feedback
 
 const START_CASH = 50;
 
@@ -166,6 +167,26 @@ document.getElementById('withdrawForm').addEventListener('submit', async e => {
     e.target.reset();
   } catch (err) {
     showAlert(withdrawAlert, 'Error requesting withdrawal', false);
+  }
+});
+
+// ==========================
+// Support - Send Message
+// ==========================
+document.getElementById('supportForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const message = document.getElementById('supportMessage').value;
+  try {
+    const res = await fetch('/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, message })
+    });
+    const data = await res.json();
+    showAlert(supportAlert, data.message || 'Message sent to support!', data.success);
+    e.target.reset();
+  } catch (err) {
+    showAlert(supportAlert, 'Error sending support message', false);
   }
 });
 
