@@ -143,15 +143,19 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
     [id]
   );
 
+  const supportRes = await pool.query(
+    'SELECT id, message, created_at, false AS from_admin FROM support_messages WHERE user_id=$1 ORDER BY created_at ASC',
+    [id]
+  );
+
   res.json({
     success: true,
     user,
     withdrawals: withdrawalsRes.rows,
-    investments: investmentsRes.rows
+    investments: investmentsRes.rows,
+    supportMessages: supportRes.rows
   });
 }));
-
-// ❌ Removed Buy BTC & Sell BTC endpoints
 
 // Withdraw
 app.post('/withdraw', asyncHandler(async (req, res) => {
@@ -175,7 +179,7 @@ app.post('/support/message', asyncHandler(async (req, res) => {
   if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
 
   await pool.query(
-    'INSERT INTO support_messages (user_id, message, created_at) VALUES ($1,$2,NOW())',
+    'INSERT INTO support_messages (user_id, message, created_at, from_admin) VALUES ($1,$2,NOW(), false)',
     [userId, message]
   );
 
@@ -185,10 +189,11 @@ app.post('/support/message', asyncHandler(async (req, res) => {
 // Admin views messages
 app.get('/admin/support', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
-    SELECT s.id, s.message, s.created_at, u.username 
+    SELECT s.id, s.message, s.created_at, u.username,
+           CASE WHEN s.from_admin THEN 'support' ELSE 'user' END AS from
     FROM support_messages s
     JOIN users u ON s.user_id = u.id
-    ORDER BY s.created_at DESC
+    ORDER BY s.created_at ASC
   `);
   res.json({ success: true, messages: result.rows });
 }));
