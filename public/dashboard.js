@@ -98,6 +98,7 @@ function renderInvestments(investments = []) {
 // Show Alerts
 // ==========================
 function showAlert(el, msg, isSuccess = true) {
+  if (!el) return;
   el.textContent = msg;
   el.className = `alert ${isSuccess ? 'success' : 'error'}`;
   el.style.display = 'block';
@@ -107,7 +108,7 @@ function showAlert(el, msg, isSuccess = true) {
 // ==========================
 // Buy BTC
 // ==========================
-document.getElementById('buyForm').addEventListener('submit', async e => {
+document.getElementById('buyForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('buyAmount').value);
   const price = parseFloat(document.getElementById('buyPrice').value);
@@ -129,7 +130,7 @@ document.getElementById('buyForm').addEventListener('submit', async e => {
 // ==========================
 // Sell BTC
 // ==========================
-document.getElementById('sellForm').addEventListener('submit', async e => {
+document.getElementById('sellForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('sellAmount').value);
   const price = parseFloat(document.getElementById('sellPrice').value);
@@ -151,7 +152,7 @@ document.getElementById('sellForm').addEventListener('submit', async e => {
 // ==========================
 // Withdraw
 // ==========================
-document.getElementById('withdrawForm').addEventListener('submit', async e => {
+document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('withdrawAmount').value);
   const wallet = document.getElementById('withdrawWallet').value;
@@ -189,6 +190,29 @@ document.getElementById('supportForm')?.addEventListener('submit', async e => {
     showAlert(supportAlert, 'Error sending support message', false);
   }
 });
+
+// ==========================
+// About Company Modal Logic
+// ==========================
+const aboutBtn = document.getElementById('aboutBtn');
+const aboutModal = document.getElementById('aboutModal');
+const aboutClose = document.getElementById('aboutClose');
+
+if (aboutBtn && aboutModal && aboutClose) {
+  aboutBtn.addEventListener('click', () => {
+    aboutModal.style.display = 'block';
+  });
+
+  aboutClose.addEventListener('click', () => {
+    aboutModal.style.display = 'none';
+  });
+
+  window.addEventListener('click', e => {
+    if (e.target === aboutModal) {
+      aboutModal.style.display = 'none';
+    }
+  });
+}
 
 // ==========================
 // Initial fetch + auto-refresh
