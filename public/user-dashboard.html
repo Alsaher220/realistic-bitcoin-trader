@@ -56,26 +56,7 @@
       </table>
     </section>
 
-    <section class="buy-btc card">
-      <h2>Buy BTC</h2>
-      <form id="buyForm">
-        <input type="number" id="buyAmount" placeholder="Amount" required>
-        <input type="number" id="buyPrice" placeholder="Price" required>
-        <button type="submit">Buy</button>
-      </form>
-      <div id="buyAlert" class="alert"></div>
-    </section>
-
-    <section class="sell-btc card">
-      <h2>Sell BTC</h2>
-      <form id="sellForm">
-        <input type="number" id="sellAmount" placeholder="Amount" required>
-        <input type="number" id="sellPrice" placeholder="Price" required>
-        <button type="submit">Sell</button>
-      </form>
-      <div id="sellAlert" class="alert"></div>
-    </section>
-
+    <!-- Withdraw Section -->
     <section class="withdraw card">
       <h2>Withdraw</h2>
       <form id="withdrawForm">
@@ -85,10 +66,26 @@
       </form>
       <div id="withdrawAlert" class="alert"></div>
     </section>
+
+    <!-- Support Section -->
+    <section class="support card">
+      <h2>Support</h2>
+      <div id="supportMessages" class="messages-box">
+        <!-- Filled dynamically by dashboard.js -->
+      </div>
+      <form id="supportForm">
+        <textarea id="supportMessage" placeholder="Type your message..." required></textarea>
+        <button type="submit">Send</button>
+      </form>
+      <p class="support-contact">
+        📞 +1 (321) 283-6093<br>
+        📧 support@tradesphere.com
+      </p>
+    </section>
   </div>
 
   <footer>
-    &copy; 2020 TradeSphere
+    &copy; 2025 TradeSphere
   </footer>
 
   <script src="dashboard.js"></script>
