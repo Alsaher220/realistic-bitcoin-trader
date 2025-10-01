@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Full & Fixed Top-Up + Support)
+// TradeSphere Admin Dashboard JS (Full & Fixed Top-Up + Support + Info)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -7,7 +7,7 @@ const tradesTableBody = document.querySelector('#tradesTable tbody');
 const withdrawalsTableBody = document.querySelector('#withdrawalsTable tbody');
 const investmentsTableBody = document.querySelector('#investmentsTable tbody');
 const topupTableBody = document.querySelector('#topupTable tbody');
-const supportTableBody = document.querySelector('#supportTable tbody'); // support table tbody
+const supportTableBody = document.querySelector('#supportTable tbody');
 
 const userAlert = document.getElementById('userAlert');
 const withdrawalAlert = document.getElementById('withdrawalAlert');
@@ -15,9 +15,6 @@ const investmentAlert = document.getElementById('investmentAlert');
 
 const adminId = localStorage.getItem('userId');
 const adminRole = localStorage.getItem('role');
-
-// Track last top-up id for highlights (was referenced previously)
-let lastTopupId = 0;
 
 // Redirect if not admin
 if (!adminId || adminRole !== 'admin') {
@@ -37,7 +34,7 @@ function showAlert(element, message, isSuccess = true) {
 }
 
 // ==========================
-// Fetch Users (show actual usernames)
+// Fetch Users
 // ==========================
 async function fetchUsers() {
   try {
@@ -71,7 +68,7 @@ async function fetchUsers() {
 }
 
 // ==========================
-// Top Up User (updates table immediately)
+// Top Up User
 // ==========================
 async function topUpUser(userId) {
   const cash = prompt("Enter CASH amount to top up:");
@@ -96,7 +93,6 @@ async function topUpUser(userId) {
     const data = await res.json();
     if (data.success) {
       showAlert(userAlert, data.message || 'Top-up successful', true);
-      // Immediately update the user in the table
       fetchUsers();
       fetchInvestments();
       fetchTopups();
@@ -244,7 +240,6 @@ async function fetchTopups() {
         `;
         topupTableBody.appendChild(row);
       });
-      lastTopupId = Number(topups[0].id || topups[0]._id);
     } else {
       topupTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No top-ups</td></tr>`;
     }
@@ -329,7 +324,7 @@ function refreshAll() {
   fetchWithdrawals();
   fetchInvestments();
   fetchTopups();
-  fetchSupportMessages(); // added support fetch
+  fetchSupportMessages();
 }
 
 // Initial fetch + auto-refresh every 5s
