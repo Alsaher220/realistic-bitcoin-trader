@@ -123,7 +123,7 @@ app.post('/login', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get user info + withdrawals + investments
+// Get user info + withdrawals + investments + support
 app.get('/user/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userRes = await pool.query(
@@ -195,6 +195,19 @@ app.get('/admin/support', verifyAdmin, asyncHandler(async (req, res) => {
     ORDER BY s.created_at DESC
   `);
   res.json({ success: true, messages: result.rows });
+}));
+
+// Admin replies to a user's support message
+app.post('/admin/support/reply', verifyAdmin, asyncHandler(async (req, res) => {
+  const { userId, message, replyTo } = req.body;
+  if (!userId || !message) return res.json({ success: false, message: 'User ID and reply message required' });
+
+  await pool.query(
+    'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
+    [userId, message, 'admin'] // sender stored as 'admin'
+  );
+
+  res.json({ success: true, message: 'Reply sent!' });
 }));
 
 // ------------------- ADMIN ROUTES -------------------
