@@ -6,6 +6,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TradeSphere User Dashboard</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* About Company Modal Styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background: rgba(0,0,0,0.6);
+    }
+    .modal-content {
+      background: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+    .close {
+      float: right;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #333;
+    }
+    .close:hover {
+      color: red;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -33,9 +66,7 @@
             <th>Date</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Dynamically filled by dashboard.js -->
-        </tbody>
+        <tbody></tbody>
       </table>
     </section>
 
@@ -50,9 +81,7 @@
             <th>Date</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Dynamically filled by dashboard.js -->
-        </tbody>
+        <tbody></tbody>
       </table>
     </section>
 
@@ -70,9 +99,7 @@
     <!-- Support Section -->
     <section class="support card">
       <h2>Support</h2>
-      <div id="supportMessages" class="messages-box">
-        <!-- Filled dynamically by dashboard.js -->
-      </div>
+      <div id="supportMessages" class="messages-box"></div>
       <form id="supportForm">
         <textarea id="supportMessage" placeholder="Type your message..." required></textarea>
         <button type="submit">Send</button>
@@ -82,6 +109,32 @@
         📧 support@tradesphere.com
       </p>
     </section>
+
+    <!-- About Company Button -->
+    <section class="about card">
+      <button id="aboutBtn">About Company</button>
+    </section>
+  </div>
+
+  <!-- About Company Modal -->
+  <div id="aboutModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="aboutClose">&times;</span>
+      <h2>About TradeSphere</h2>
+      <p>
+        Since 2020, <strong>TradeSphere</strong> has been a trusted broker platform dedicated to providing users with secure and reliable digital asset trading and investment opportunities. 
+        Over the years, we have built a reputation for innovation, transparency, and client satisfaction. Our mission is simple: to empower every investor, regardless of experience level, 
+        with the tools and support they need to succeed.  
+
+        From seamless Bitcoin investments to professional support services, TradeSphere ensures every client’s funds are handled with the highest standards of security.  
+        Our advanced systems are built to protect assets while offering a smooth and professional trading experience.  
+
+        Today, thousands of investors trust us for their financial growth. We remain committed to staying ahead of the market, 
+        delivering excellence, and keeping every user happy with consistent, reliable service.  
+        
+        With TradeSphere, your success is our priority — and we continue to prove it every single day.
+      </p>
+    </div>
   </div>
 
   <footer>
