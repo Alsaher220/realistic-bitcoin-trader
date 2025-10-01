@@ -211,7 +211,7 @@ document.getElementById('supportForm')?.addEventListener('submit', async e => {
   const message = document.getElementById('supportMessage').value;
 
   try {
-    const res = await fetch('/support', {
+    const res = await fetch('/support/message', { // <-- FIXED ROUTE
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, message })
