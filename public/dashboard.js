@@ -115,15 +115,23 @@ function renderSupportMessages(messages = []) {
     div.className = 'support-message';
     div.style.borderBottom = '1px solid #ddd';
     div.style.padding = '5px 0';
+
+    const senderLabel = msg.sender === 'user' ? 'You' : 'Support';
+    const messageText = msg.message || msg.text || '';
+    const timestamp = msg.created_at || msg.date || Date.now();
+
     div.innerHTML = `
-      <strong>${msg.from === 'user' ? 'You' : 'Support'}:</strong> ${msg.text}<br>
-      <small style="color:#888;">${new Date(msg.date || Date.now()).toLocaleString()}</small>
+      <strong>${senderLabel}:</strong> ${messageText}<br>
+      <small style="color:#888;">${new Date(timestamp).toLocaleString()}</small>
     `;
     supportMessagesBox.appendChild(div);
   });
 
   // Auto-scroll to latest message
   supportMessagesBox.scrollTop = supportMessagesBox.scrollHeight;
+
+  // Save current messages for appending new ones
+  supportMessagesBox._currentMessages = messages;
 }
 
 // ==========================
@@ -208,10 +216,11 @@ document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
 // ==========================
 document.getElementById('supportForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const message = document.getElementById('supportMessage').value;
+  const message = document.getElementById('supportMessage').value.trim();
+  if (!message) return;
 
   try {
-    const res = await fetch('/support/message', { // <-- FIXED ROUTE
+    const res = await fetch('/support/message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, message })
@@ -221,11 +230,9 @@ document.getElementById('supportForm')?.addEventListener('submit', async e => {
     if (data.success) {
       showAlert(supportAlert, data.message || 'Message sent to support!', true);
 
-      // Append the new message to the messages box
-      const newMsg = { from: 'user', text: message, date: Date.now() };
-      renderSupportMessages([...supportMessagesBox._currentMessages || [], newMsg]);
-      // Save current messages for next update
-      supportMessagesBox._currentMessages = [...supportMessagesBox._currentMessages || [], newMsg];
+      const newMsg = { sender: 'user', message: message, created_at: Date.now() };
+      const updatedMessages = [...(supportMessagesBox._currentMessages || []), newMsg];
+      renderSupportMessages(updatedMessages);
 
       document.getElementById('supportMessage').value = '';
     } else {
@@ -233,6 +240,7 @@ document.getElementById('supportForm')?.addEventListener('submit', async e => {
     }
   } catch (err) {
     showAlert(supportAlert, 'Error sending support message', false);
+    console.error(err);
   }
 });
 
