@@ -144,7 +144,7 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
   );
 
   const supportRes = await pool.query(
-    'SELECT id, message, created_at, false AS from_admin FROM support_messages WHERE user_id=$1 ORDER BY created_at ASC',
+    'SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at DESC',
     [id]
   );
 
@@ -179,8 +179,8 @@ app.post('/support/message', asyncHandler(async (req, res) => {
   if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
 
   await pool.query(
-    'INSERT INTO support_messages (user_id, message, created_at, from_admin) VALUES ($1,$2,NOW(), false)',
-    [userId, message]
+    'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
+    [userId, message, 'user'] // store sender as 'user'
   );
 
   res.json({ success: true, message: 'Support message sent!' });
@@ -189,11 +189,10 @@ app.post('/support/message', asyncHandler(async (req, res) => {
 // Admin views messages
 app.get('/admin/support', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
-    SELECT s.id, s.message, s.created_at, u.username,
-           CASE WHEN s.from_admin THEN 'support' ELSE 'user' END AS from
+    SELECT s.id, s.message, s.sender, s.created_at, u.username 
     FROM support_messages s
     JOIN users u ON s.user_id = u.id
-    ORDER BY s.created_at ASC
+    ORDER BY s.created_at DESC
   `);
   res.json({ success: true, messages: result.rows });
 }));
