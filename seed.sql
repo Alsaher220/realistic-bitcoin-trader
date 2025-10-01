@@ -1,25 +1,30 @@
 -- ===========================
--- Safe seed for TradeSphere (Corrected)
+-- TradeSphere Full Reset + Support System (Drop + Recreate)
 -- ===========================
 
 -- 1️⃣ Ensure pgcrypto extension exists
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- 2️⃣ Add preferred_name column if it doesn't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name='users' AND column_name='preferred_name'
-    ) THEN
-        ALTER TABLE users ADD COLUMN preferred_name TEXT;
-    END IF;
-END
-$$;
+-- 2️⃣ Drop old tables safely (in correct dependency order)
+DROP TABLE IF EXISTS support_messages CASCADE;
+DROP TABLE IF EXISTS withdrawals CASCADE;
+DROP TABLE IF EXISTS topups CASCADE;
+DROP TABLE IF EXISTS investments CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
--- 3️⃣ Ensure tables exist
-CREATE TABLE IF NOT EXISTS investments (
+-- 3️⃣ Recreate users table
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    preferred_name TEXT,
+    password TEXT NOT NULL,
+    role TEXT CHECK (role IN ('user','admin')) DEFAULT 'user',
+    cash NUMERIC(12,2) DEFAULT 0,
+    btc NUMERIC(12,2) DEFAULT 0
+);
+
+-- 4️⃣ Core tables
+CREATE TABLE investments (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id),
     plan TEXT,
@@ -28,7 +33,7 @@ CREATE TABLE IF NOT EXISTS investments (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS withdrawals (
+CREATE TABLE withdrawals (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id),
     amount NUMERIC(12,2),
@@ -37,7 +42,7 @@ CREATE TABLE IF NOT EXISTS withdrawals (
     date TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS topups (
+CREATE TABLE topups (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id),
     amount NUMERIC(12,2),
@@ -45,24 +50,27 @@ CREATE TABLE IF NOT EXISTS topups (
     date TIMESTAMP DEFAULT NOW()
 );
 
--- 4️⃣ Admin user
+-- 5️⃣ Support Messages Table
+CREATE TABLE support_messages (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    sender VARCHAR(10) CHECK (sender IN ('user','admin')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6️⃣ Seed Admin
 INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'Alsaher',
   'Alsaher',
-  crypt('SaTURn1447', gen_salt('bf')), -- replace with your actual password
+  crypt('SaTURn1447', gen_salt('bf')), -- change password if needed
   'admin',
   1000.00,
   10.00
-)
-ON CONFLICT (username) DO UPDATE
-SET password = EXCLUDED.password,
-    cash = EXCLUDED.cash,
-    btc = EXCLUDED.btc,
-    role = EXCLUDED.role,
-    preferred_name = EXCLUDED.preferred_name;
+);
 
--- 5️⃣ Demo user
+-- 7️⃣ Seed Demo User
 INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'demo',
@@ -71,21 +79,14 @@ VALUES (
   'user',
   50.00,
   0.50
-)
-ON CONFLICT (username) DO NOTHING;
+);
 
--- 6️⃣ Demo investment for demo user
+-- 8️⃣ Starter plan for demo
 INSERT INTO investments (user_id, amount, plan, status)
 SELECT id, 25.00, 'Starter Plan', 'active'
-FROM users 
-WHERE username='demo'
-ON CONFLICT DO NOTHING;
+FROM users WHERE username='demo';
 
--- 7️⃣ Ensure balances
-UPDATE users SET cash = 50.00 WHERE username = 'demo';
-UPDATE users SET cash = 1000.00 WHERE username = 'Alsaher';
-
--- 8️⃣ Default investment trigger
+-- 9️⃣ Default investment trigger
 CREATE OR REPLACE FUNCTION create_default_investment() RETURNS trigger AS $$
 BEGIN
   INSERT INTO investments (user_id, amount, plan, status)
@@ -94,15 +95,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_trigger WHERE tgname='add_default_investment'
-  ) THEN
-    CREATE TRIGGER add_default_investment
-    AFTER INSERT ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION create_default_investment();
-  END IF;
-END
-$$;
+CREATE TRIGGER add_default_investment
+AFTER INSERT ON users
+FOR EACH ROW
+EXECUTE FUNCTION create_default_investment();
