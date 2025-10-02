@@ -123,36 +123,25 @@ app.post('/login', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get user info + withdrawals + investments + support
+// Get user info + withdrawals + investments + trades + support
 app.get('/user/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userRes = await pool.query(
-    'SELECT id, username, preferred_name, cash, btc FROM users WHERE id=$1',
-    [id]
-  );
+
+  const userRes = await pool.query('SELECT id, username, preferred_name, cash, btc FROM users WHERE id=$1', [id]);
   const user = userRes.rows[0];
   if (!user) return res.json({ success: false, message: 'User not found' });
 
-  const withdrawalsRes = await pool.query(
-    'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
-    [id]
-  );
-
-  const investmentsRes = await pool.query(
-    'SELECT plan, amount, status, created_at FROM investments WHERE user_id=$1 ORDER BY created_at DESC',
-    [id]
-  );
-
-  const supportRes = await pool.query(
-    'SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at DESC',
-    [id]
-  );
+  const withdrawalsRes = await pool.query('SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC', [id]);
+  const investmentsRes = await pool.query('SELECT plan, amount, status, created_at FROM investments WHERE user_id=$1 ORDER BY created_at DESC', [id]);
+  const supportRes = await pool.query('SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at DESC', [id]);
+  const tradesRes = await pool.query('SELECT type, amount, price, date FROM trades WHERE user_id=$1 ORDER BY date DESC', [id]);
 
   res.json({
     success: true,
     user,
     withdrawals: withdrawalsRes.rows,
     investments: investmentsRes.rows,
+    trades: tradesRes.rows,
     supportMessages: supportRes.rows
   });
 }));
@@ -178,10 +167,7 @@ app.post('/support/message', asyncHandler(async (req, res) => {
   const { userId, message } = req.body;
   if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
 
-  await pool.query(
-    'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
-    [userId, message, 'user']
-  );
+  await pool.query('INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())', [userId, message, 'user']);
 
   res.json({ success: true, message: 'Support message sent!' });
 }));
@@ -189,10 +175,7 @@ app.post('/support/message', asyncHandler(async (req, res) => {
 // Admin fetch messages of a user
 app.get('/admin/support/messages/:userId', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const result = await pool.query(
-    'SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at ASC',
-    [userId]
-  );
+  const result = await pool.query('SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at ASC', [userId]);
   res.json({ success: true, messages: result.rows });
 }));
 
@@ -201,15 +184,13 @@ app.post('/admin/support/send', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId, message } = req.body;
   if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
 
-  await pool.query(
-    'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
-    [userId, message, 'admin']
-  );
-
+  await pool.query('INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())', [userId, message, 'admin']);
   res.json({ success: true, message: 'Message sent!' });
 }));
 
 // ------------------- ADMIN ROUTES -------------------
+
+// Fetch all users
 app.get('/admin/users', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query('SELECT id, username, preferred_name, cash, btc FROM users ORDER BY id ASC');
   res.json({ success: true, users: result.rows });
@@ -231,16 +212,10 @@ app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
   await pool.query('UPDATE users SET cash=$1, btc=$2 WHERE id=$3', [newCash, newBTC, userId]);
 
   if (investmentAmount && investmentPlan) {
-    await pool.query(
-      'INSERT INTO investments (user_id, plan, amount, status, created_at) VALUES ($1,$2,$3,$4,NOW())',
-      [userId, investmentPlan, investmentAmount, 'active']
-    );
+    await pool.query('INSERT INTO investments (user_id, plan, amount, status, created_at) VALUES ($1,$2,$3,$4,NOW())', [userId, investmentPlan, investmentAmount, 'active']);
   }
 
-  await pool.query(
-    'INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())',
-    [userId, Number(cash) + Number(btc), adminUserId]
-  );
+  await pool.query('INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())', [userId, Number(cash) + Number(btc), adminUserId]);
 
   res.json({ success: true, message: 'Top-up successful!' });
 }));
@@ -256,18 +231,13 @@ app.post('/admin/reduce', verifyAdmin, asyncHandler(async (req, res) => {
   const user = userRes.rows[0];
   if (!user) return res.json({ success: false, message: 'User not found' });
 
-  if (user.cash < cash || user.btc < btc) {
-    return res.json({ success: false, message: 'Insufficient balance to reduce' });
-  }
+  if (user.cash < cash || user.btc < btc) return res.json({ success: false, message: 'Insufficient balance to reduce' });
 
   const newCash = Number(user.cash) - Number(cash);
   const newBTC = Number(user.btc) - Number(btc);
   await pool.query('UPDATE users SET cash=$1, btc=$2 WHERE id=$3', [newCash, newBTC, userId]);
 
-  await pool.query(
-    'INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())',
-    [userId, -(Number(cash) + Number(btc)), adminUserId]
-  );
+  await pool.query('INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())', [userId, -(Number(cash) + Number(btc)), adminUserId]);
 
   res.json({ success: true, message: 'Reduce successful!' });
 }));
@@ -312,6 +282,17 @@ app.get('/admin/topups', verifyAdmin, asyncHandler(async (req, res) => {
     ORDER BY t.date DESC
   `);
   res.json({ success: true, topups: result.rows });
+}));
+
+// Admin: Fetch Trades
+app.get('/admin/trades', verifyAdmin, asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT tr.id, tr.user_id, tr.type, tr.amount, tr.price, tr.date, u.username
+    FROM trades tr
+    JOIN users u ON tr.user_id = u.id
+    ORDER BY tr.date DESC
+  `);
+  res.json({ success: true, trades: result.rows });
 }));
 
 // ------------------- DASHBOARD ROUTES -------------------
