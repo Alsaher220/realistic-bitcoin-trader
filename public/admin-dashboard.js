@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Full & Fixed Top-Up + Support + Info + Reduce + Open Chat)
+// TradeSphere Admin Dashboard JS (Full & Fixed Top-Up + Support + Info + Reduce + Open Chat + Live Support Chat)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -291,6 +291,7 @@ const supportMessageInput = document.getElementById('supportMessageInput');
 const sendSupportMessageBtn = document.getElementById('sendSupportMessage');
 
 let currentChatUserId = null;
+let lastMessageId = 0;
 let supportPollInterval = null;
 
 document.getElementById('openSupportChat').addEventListener('click', () => {
@@ -313,7 +314,7 @@ sendSupportMessageBtn.addEventListener('click', async () => {
     const data = await res.json();
     if (data.success) {
       supportMessageInput.value = '';
-      fetchSupportMessages(currentChatUserId);
+      fetchSupportMessages(currentChatUserId, true); // fetch only new messages
     } else {
       alert('Failed to send message.');
     }
@@ -325,35 +326,38 @@ sendSupportMessageBtn.addEventListener('click', async () => {
 
 function openSupportChat(userId) {
   currentChatUserId = userId;
+  lastMessageId = 0;
   supportChatWindow.style.display = 'flex';
-  fetchSupportMessages(userId);
+  supportMessages.innerHTML = '<div style="color:#888;text-align:center;">Loading messages...</div>';
+  fetchSupportMessages(userId, false);
 
   if (supportPollInterval) clearInterval(supportPollInterval);
-  supportPollInterval = setInterval(() => fetchSupportMessages(userId), 1000);
+  supportPollInterval = setInterval(() => fetchSupportMessages(userId, true), 1000);
 }
 
-async function fetchSupportMessages(userId) {
+async function fetchSupportMessages(userId, fetchNewOnly = false) {
   if (!userId) return;
   try {
-    const res = await fetch(`/admin/support/messages/${userId}`, {
+    const res = await fetch(`/admin/support/messages/${userId}?after=${fetchNewOnly ? lastMessageId : 0}`, {
       headers: { 'x-user-id': adminId }
     });
     const data = await res.json();
     if (data.success && Array.isArray(data.messages)) {
-      supportMessages.innerHTML = '';
+      if (!fetchNewOnly) supportMessages.innerHTML = ''; // first load clear old
       data.messages.forEach(msg => {
         const sender = msg.sender === 'admin' ? 'You' : 'User';
         const div = document.createElement('div');
         div.innerHTML = `<b>${sender}:</b> ${escapeHtml(msg.message)}`;
         supportMessages.appendChild(div);
+        if (msg.id) lastMessageId = Math.max(lastMessageId, msg.id);
       });
       supportMessages.scrollTop = supportMessages.scrollHeight;
-    } else {
+    } else if (!fetchNewOnly) {
       supportMessages.innerHTML = `<div style="color:#888;">No messages yet.</div>`;
     }
   } catch (err) {
     console.error(err);
-    supportMessages.innerHTML = `<div style="color:#888;">Failed to load messages.</div>`;
+    if (!fetchNewOnly) supportMessages.innerHTML = `<div style="color:#888;">Failed to load messages.</div>`;
   }
 }
 
