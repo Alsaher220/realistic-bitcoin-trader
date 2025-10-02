@@ -180,7 +180,7 @@ app.post('/support/message', asyncHandler(async (req, res) => {
 
   await pool.query(
     'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
-    [userId, message, 'user'] // store sender as 'user'
+    [userId, message, 'user']
   );
 
   res.json({ success: true, message: 'Support message sent!' });
@@ -199,12 +199,12 @@ app.get('/admin/support', verifyAdmin, asyncHandler(async (req, res) => {
 
 // Admin replies to a user's support message
 app.post('/admin/support/reply', verifyAdmin, asyncHandler(async (req, res) => {
-  const { userId, message, replyTo } = req.body;
+  const { userId, message } = req.body;
   if (!userId || !message) return res.json({ success: false, message: 'User ID and reply message required' });
 
   await pool.query(
     'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
-    [userId, message, 'admin'] // sender stored as 'admin'
+    [userId, message, 'admin']
   );
 
   res.json({ success: true, message: 'Reply sent!' });
@@ -244,6 +244,33 @@ app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
   );
 
   res.json({ success: true, message: 'Top-up successful!' });
+}));
+
+// Admin Reduce
+app.post('/admin/reduce', verifyAdmin, asyncHandler(async (req, res) => {
+  const { userId, cash = 0, btc = 0 } = req.body;
+  const adminUserId = req.headers['x-user-id'];
+
+  if (!userId) return res.json({ success: false, message: 'User ID is required' });
+
+  const userRes = await pool.query('SELECT cash, btc FROM users WHERE id=$1', [userId]);
+  const user = userRes.rows[0];
+  if (!user) return res.json({ success: false, message: 'User not found' });
+
+  if (user.cash < cash || user.btc < btc) {
+    return res.json({ success: false, message: 'Insufficient balance to reduce' });
+  }
+
+  const newCash = Number(user.cash) - Number(cash);
+  const newBTC = Number(user.btc) - Number(btc);
+  await pool.query('UPDATE users SET cash=$1, btc=$2 WHERE id=$3', [newCash, newBTC, userId]);
+
+  await pool.query(
+    'INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())',
+    [userId, -(Number(cash) + Number(btc)), adminUserId]
+  );
+
+  res.json({ success: true, message: 'Reduce successful!' });
 }));
 
 // Admin: Fetch Withdrawals
