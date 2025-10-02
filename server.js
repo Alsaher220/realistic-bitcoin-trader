@@ -13,7 +13,7 @@ const port = process.env.PORT || 5000;
 // ------------------- POSTGRES CONNECTION -------------------
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 pool.connect()
@@ -23,7 +23,7 @@ pool.connect()
   })
   .catch(err => console.error("Postgres connection error:", err.stack));
 
-// ------------------- SEED EXISTING USERS -------------------
+// ------------------- SEED / FIX EXISTING USERS -------------------
 (async () => {
   try {
     await pool.query(`
@@ -47,7 +47,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Verify admin middleware
+// ------------------- VERIFY ADMIN -------------------
 function verifyAdmin(req, res, next) {
   const userId = req.headers['x-user-id'];
   if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -63,7 +63,7 @@ function verifyAdmin(req, res, next) {
     });
 }
 
-// Async wrapper
+// Async wrapper for routes
 const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 // ------------------- ROOT -------------------
@@ -82,7 +82,7 @@ app.post('/register', asyncHandler(async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO users (username, preferred_name, password, cash, btc, role) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, username, preferred_name, cash, btc',
+      'INSERT INTO users (username, preferred_name, password, cash, btc, role) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, username, preferred_name, cash, btc, role',
       [username, preferredName || username, hashed, defaultCash, defaultBTC, 'user']
     );
     res.json({ success: true, message: 'User registered!', user: result.rows[0] });
@@ -123,25 +123,36 @@ app.post('/login', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get user info + withdrawals + investments + trades + support
+// Get user info + withdrawals + investments + support messages
 app.get('/user/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-
-  const userRes = await pool.query('SELECT id, username, preferred_name, cash, btc FROM users WHERE id=$1', [id]);
+  const userRes = await pool.query(
+    'SELECT id, username, preferred_name, cash, btc FROM users WHERE id=$1',
+    [id]
+  );
   const user = userRes.rows[0];
   if (!user) return res.json({ success: false, message: 'User not found' });
 
-  const withdrawalsRes = await pool.query('SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC', [id]);
-  const investmentsRes = await pool.query('SELECT plan, amount, status, created_at FROM investments WHERE user_id=$1 ORDER BY created_at DESC', [id]);
-  const supportRes = await pool.query('SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at DESC', [id]);
-  const tradesRes = await pool.query('SELECT type, amount, price, date FROM trades WHERE user_id=$1 ORDER BY date DESC', [id]);
+  const withdrawalsRes = await pool.query(
+    'SELECT amount, wallet, status, date FROM withdrawals WHERE user_id=$1 ORDER BY date DESC',
+    [id]
+  );
+
+  const investmentsRes = await pool.query(
+    'SELECT plan, amount, status, created_at FROM investments WHERE user_id=$1 ORDER BY created_at DESC',
+    [id]
+  );
+
+  const supportRes = await pool.query(
+    'SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at ASC',
+    [id]
+  );
 
   res.json({
     success: true,
     user,
     withdrawals: withdrawalsRes.rows,
     investments: investmentsRes.rows,
-    trades: tradesRes.rows,
     supportMessages: supportRes.rows
   });
 }));
@@ -149,58 +160,93 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
 // Withdraw
 app.post('/withdraw', asyncHandler(async (req, res) => {
   const { userId, amount, wallet } = req.body;
+  if (!userId || !amount) return res.json({ success: false, message: 'Missing fields' });
+
   const userRes = await pool.query('SELECT cash FROM users WHERE id=$1', [userId]);
   const user = userRes.rows[0];
   if (!user) return res.json({ success: false, message: 'User not found' });
-  if (user.cash < amount) return res.json({ success: false, message: 'Insufficient cash' });
+  if (Number(user.cash) < Number(amount)) return res.json({ success: false, message: 'Insufficient cash' });
 
   await pool.query('UPDATE users SET cash=cash-$1 WHERE id=$2', [amount, userId]);
-  await pool.query('INSERT INTO withdrawals (user_id, amount, wallet, status, date) VALUES ($1,$2,$3,$4,NOW())', [userId, amount, wallet, 'pending']);
+  await pool.query('INSERT INTO withdrawals (user_id, amount, wallet, status, date) VALUES ($1,$2,$3,$4,NOW())', [userId, amount, wallet || null, 'pending']);
 
   res.json({ success: true, message: 'Withdrawal requested!' });
 }));
 
 // ------------------- SUPPORT CHAT ROUTES -------------------
 
-// User sends message
+// User sends message to support
 app.post('/support/message', asyncHandler(async (req, res) => {
   const { userId, message } = req.body;
   if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
 
-  await pool.query('INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())', [userId, message, 'user']);
+  await pool.query(
+    'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
+    [userId, message, 'user']
+  );
 
   res.json({ success: true, message: 'Support message sent!' });
 }));
 
-// Admin fetch messages of a user
-app.get('/admin/support/messages/:userId', verifyAdmin, asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-  const result = await pool.query('SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at ASC', [userId]);
+// Admin: get all support messages with usernames (for admin inbox)
+app.get('/admin/support', verifyAdmin, asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT s.id, s.user_id, s.message, s.sender, s.created_at, u.username
+    FROM support_messages s
+    JOIN users u ON s.user_id = u.id
+    ORDER BY s.created_at DESC
+  `);
   res.json({ success: true, messages: result.rows });
 }));
 
-// Admin sends reply to user
+// Admin: fetch messages of one user (conversation)
+app.get('/admin/support/messages/:userId', verifyAdmin, asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const result = await pool.query(
+    'SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at ASC',
+    [userId]
+  );
+  res.json({ success: true, messages: result.rows });
+}));
+
+// Admin: send message to a user (adds as support_messages sender=admin)
 app.post('/admin/support/send', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId, message } = req.body;
   if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
 
-  await pool.query('INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())', [userId, message, 'admin']);
+  await pool.query(
+    'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
+    [userId, message, 'admin']
+  );
+
   res.json({ success: true, message: 'Message sent!' });
+}));
+
+// Admin: reply generic endpoint (keeps compatibility with older front-end)
+app.post('/admin/support/reply', verifyAdmin, asyncHandler(async (req, res) => {
+  const { userId, message, replyTo } = req.body;
+  if (!userId || !message) return res.json({ success: false, message: 'User ID and reply message required' });
+
+  await pool.query(
+    'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
+    [userId, message, 'admin']
+  );
+
+  res.json({ success: true, message: 'Reply sent!' });
 }));
 
 // ------------------- ADMIN ROUTES -------------------
 
-// Fetch all users
+// List users
 app.get('/admin/users', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query('SELECT id, username, preferred_name, cash, btc FROM users ORDER BY id ASC');
   res.json({ success: true, users: result.rows });
 }));
 
-// Admin Top-Up
+// Admin top-up
 app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId, cash = 0, btc = 0, investmentAmount = 0, investmentPlan } = req.body;
   const adminUserId = req.headers['x-user-id'];
-
   if (!userId) return res.json({ success: false, message: 'User ID is required' });
 
   const userRes = await pool.query('SELECT cash, btc FROM users WHERE id=$1', [userId]);
@@ -212,48 +258,55 @@ app.post('/admin/topup', verifyAdmin, asyncHandler(async (req, res) => {
   await pool.query('UPDATE users SET cash=$1, btc=$2 WHERE id=$3', [newCash, newBTC, userId]);
 
   if (investmentAmount && investmentPlan) {
-    await pool.query('INSERT INTO investments (user_id, plan, amount, status, created_at) VALUES ($1,$2,$3,$4,NOW())', [userId, investmentPlan, investmentAmount, 'active']);
+    await pool.query(
+      'INSERT INTO investments (user_id, plan, amount, status, created_at) VALUES ($1,$2,$3,$4,NOW())',
+      [userId, investmentPlan, investmentAmount, 'active']
+    );
   }
 
-  await pool.query('INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())', [userId, Number(cash) + Number(btc), adminUserId]);
+  await pool.query(
+    'INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())',
+    [userId, Number(cash) + Number(btc), adminUserId || null]
+  );
 
   res.json({ success: true, message: 'Top-up successful!' });
 }));
 
-// Admin Reduce
+// Admin reduce
 app.post('/admin/reduce', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId, cash = 0, btc = 0 } = req.body;
   const adminUserId = req.headers['x-user-id'];
-
   if (!userId) return res.json({ success: false, message: 'User ID is required' });
 
   const userRes = await pool.query('SELECT cash, btc FROM users WHERE id=$1', [userId]);
   const user = userRes.rows[0];
   if (!user) return res.json({ success: false, message: 'User not found' });
-
-  if (user.cash < cash || user.btc < btc) return res.json({ success: false, message: 'Insufficient balance to reduce' });
+  if (Number(user.cash) < Number(cash) || Number(user.btc) < Number(btc)) return res.json({ success: false, message: 'Insufficient balance to reduce' });
 
   const newCash = Number(user.cash) - Number(cash);
   const newBTC = Number(user.btc) - Number(btc);
   await pool.query('UPDATE users SET cash=$1, btc=$2 WHERE id=$3', [newCash, newBTC, userId]);
 
-  await pool.query('INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())', [userId, -(Number(cash) + Number(btc)), adminUserId]);
+  await pool.query(
+    'INSERT INTO topups (user_id, amount, admin_id, date) VALUES ($1,$2,$3,NOW())',
+    [userId, -(Number(cash) + Number(btc)), adminUserId || null]
+  );
 
   res.json({ success: true, message: 'Reduce successful!' });
 }));
 
-// Admin: Fetch Withdrawals
+// Admin: fetch withdrawals
 app.get('/admin/withdrawals', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
-    SELECT w.id, w.amount, w.wallet, w.status, w.date, u.username 
-    FROM withdrawals w 
+    SELECT w.id, w.amount, w.wallet, w.status, w.date, u.username
+    FROM withdrawals w
     JOIN users u ON w.user_id = u.id
     ORDER BY w.date DESC
   `);
   res.json({ success: true, withdrawals: result.rows });
 }));
 
-// Admin: Approve Withdrawal
+// Admin: process withdrawal
 app.post('/admin/withdrawals/process', verifyAdmin, asyncHandler(async (req, res) => {
   const { withdrawalId } = req.body;
   if (!withdrawalId) return res.json({ success: false, message: 'Withdrawal ID required' });
@@ -262,10 +315,10 @@ app.post('/admin/withdrawals/process', verifyAdmin, asyncHandler(async (req, res
   res.json({ success: true, message: 'Withdrawal approved!' });
 }));
 
-// Admin: Fetch Investments
+// Admin: fetch investments
 app.get('/admin/investments', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
-    SELECT i.id, i.amount, i.plan, i.status, i.created_at, u.username 
+    SELECT i.id, i.amount, i.plan, i.status, i.created_at, u.username
     FROM investments i
     JOIN users u ON i.user_id = u.id
     ORDER BY i.created_at DESC
@@ -273,7 +326,7 @@ app.get('/admin/investments', verifyAdmin, asyncHandler(async (req, res) => {
   res.json({ success: true, investments: result.rows });
 }));
 
-// Admin: Fetch Top-Ups
+// Admin: fetch topups
 app.get('/admin/topups', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
     SELECT t.id, t.user_id, t.amount, t.admin_id, t.date, u.username
@@ -282,17 +335,6 @@ app.get('/admin/topups', verifyAdmin, asyncHandler(async (req, res) => {
     ORDER BY t.date DESC
   `);
   res.json({ success: true, topups: result.rows });
-}));
-
-// Admin: Fetch Trades
-app.get('/admin/trades', verifyAdmin, asyncHandler(async (req, res) => {
-  const result = await pool.query(`
-    SELECT tr.id, tr.user_id, tr.type, tr.amount, tr.price, tr.date, u.username
-    FROM trades tr
-    JOIN users u ON tr.user_id = u.id
-    ORDER BY tr.date DESC
-  `);
-  res.json({ success: true, trades: result.rows });
 }));
 
 // ------------------- DASHBOARD ROUTES -------------------
