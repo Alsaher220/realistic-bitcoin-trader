@@ -7,7 +7,6 @@ const tradesTableBody = document.querySelector('#tradesTable tbody');
 const withdrawalsTableBody = document.querySelector('#withdrawalsTable tbody');
 const investmentsTableBody = document.querySelector('#investmentsTable tbody');
 const topupTableBody = document.querySelector('#topupTable tbody');
-const supportTableBody = document.querySelector('#supportTable tbody');
 
 const userAlert = document.getElementById('userAlert');
 const withdrawalAlert = document.getElementById('withdrawalAlert');
@@ -283,69 +282,53 @@ async function fetchTopups() {
 }
 
 // ==========================
-// Support Messages
+// Support Chat (Open Chat Button integration)
 // ==========================
-async function fetchSupportMessages() {
-  try {
-    if (!supportTableBody) return;
-    const res = await fetch('/admin/support', { headers: { 'x-user-id': adminId } });
-    const data = await res.json();
-    supportTableBody.innerHTML = '';
+const supportChatWindow = document.getElementById('supportChatWindow');
+const supportMessages = document.getElementById('supportMessages');
+const supportMessageInput = document.getElementById('supportMessageInput');
+const sendSupportMessageBtn = document.getElementById('sendSupportMessage');
 
-    if (data.success && Array.isArray(data.messages) && data.messages.length) {
-      data.messages.forEach(msg => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${msg.username || 'Unknown'}</td>
-          <td style="text-align:left;">${escapeHtml(msg.message)}</td>
-          <td>${msg.sender}</td>
-          <td>${new Date(msg.created_at).toLocaleString()}</td>
-          <td>
-            <button onclick="replySupport(${msg.user_id}, ${msg.id})">Reply</button>
-            <button onclick="openSupportChat(${msg.user_id})">Open Chat</button>
-          </td>
-        `;
-        supportTableBody.appendChild(row);
-      });
-    } else {
-      supportTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No support messages</td></tr>`;
-    }
-  } catch (err) {
-    console.error('Error fetching support messages:', err);
-    supportTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Failed to load support messages.</td></tr>`;
-  }
-}
+document.getElementById('openSupportChat').addEventListener('click', () => {
+  supportChatWindow.style.display = 'flex';
+});
 
-// Reply to a user's support message
-async function replySupport(userId, messageId = null) {
-  const reply = prompt("Enter your reply:");
-  if (!reply) return;
+// Send support message to user
+sendSupportMessageBtn.addEventListener('click', async () => {
+  const message = supportMessageInput.value.trim();
+  if (!message) return;
+
+  const userId = supportChatWindow.dataset.userId;
+  if (!userId) return alert('No user selected for chat!');
 
   try {
-    const res = await fetch('/admin/support/reply', {
+    const res = await fetch('/admin/support/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
-      body: JSON.stringify({ userId, message: reply, replyTo: messageId })
+      body: JSON.stringify({ userId, message })
     });
     const data = await res.json();
     if (data.success) {
-      showAlert(userAlert, 'Reply sent!', true);
-      fetchSupportMessages();
+      supportMessages.innerHTML += `<div><b>You:</b> ${escapeHtml(message)}</div>`;
+      supportMessageInput.value = '';
     } else {
-      showAlert(userAlert, data.message || 'Failed to send reply', false);
+      alert('Failed to send message.');
     }
   } catch (err) {
-    showAlert(userAlert, 'Error sending reply', false);
     console.error(err);
+    alert('Error sending message.');
   }
-}
+});
 
-// NEW: Open Support Chat Page
+// Open chat with a specific user
 function openSupportChat(userId) {
-  window.location.href = `admin-support-chat.html?userId=${userId}`;
+  supportChatWindow.style.display = 'flex';
+  supportChatWindow.dataset.userId = userId;
+  supportMessages.innerHTML = `<div>Loading messages for user ${userId}...</div>`;
+  // Optionally fetch previous messages here via API
 }
 
-// Simple HTML escape for messages
+// Simple HTML escape
 function escapeHtml(unsafe) {
   if (unsafe === null || unsafe === undefined) return '';
   return unsafe
@@ -366,7 +349,6 @@ function refreshAll() {
   fetchWithdrawals();
   fetchInvestments();
   fetchTopups();
-  fetchSupportMessages();
 }
 
 // Initial fetch + auto-refresh every 5s
