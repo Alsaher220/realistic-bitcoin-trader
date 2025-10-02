@@ -1,5 +1,5 @@
 // =========================
-// TradeSphere Dashboard JS
+// TradeSphere Dashboard JS with Support Chat Open Button (Full Merge)
 // =========================
 
 const userId = localStorage.getItem('userId');
@@ -14,6 +14,9 @@ const withdrawAlert = document.getElementById('withdrawAlert');
 const supportAlert = document.getElementById('supportAlert'); // Support feedback
 const supportMessagesBox = document.getElementById('supportMessages');
 const openSupportBtn = document.getElementById('openSupportBtn'); // Button to open chat
+const supportChatWindow = document.getElementById('supportChatWindow'); // Full chat window
+const supportMessageInput = document.getElementById('supportMessageInput');
+const sendSupportMessageBtn = document.getElementById('sendSupportMessage');
 
 const START_CASH = 50;
 
@@ -42,7 +45,10 @@ async function fetchUserData() {
     renderWithdrawals(data.withdrawals || []);
     renderInvestments(data.investments || []);
 
-    // Do NOT render support messages automatically
+    // Render support messages if chat window is open
+    if (supportChatWindow && supportChatWindow.style.display === 'flex') {
+      renderSupportMessages(data.supportMessages || []);
+    }
   } catch (err) {
     console.error('Error fetching user data:', err);
   }
@@ -161,9 +167,8 @@ document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
 // ==========================
 // Support - Send Message
 // ==========================
-document.getElementById('supportForm')?.addEventListener('submit', async e => {
-  e.preventDefault();
-  const message = document.getElementById('supportMessage').value.trim();
+sendSupportMessageBtn?.addEventListener('click', async () => {
+  const message = supportMessageInput.value.trim();
   if (!message) return;
 
   try {
@@ -181,7 +186,7 @@ document.getElementById('supportForm')?.addEventListener('submit', async e => {
       const updatedMessages = [...(supportMessagesBox._currentMessages || []), newMsg];
       renderSupportMessages(updatedMessages);
 
-      document.getElementById('supportMessage').value = '';
+      supportMessageInput.value = '';
     } else {
       showAlert(supportAlert, data.message || 'Failed to send message', false);
     }
@@ -194,15 +199,18 @@ document.getElementById('supportForm')?.addEventListener('submit', async e => {
 // ==========================
 // Open Support Chat on Click
 // ==========================
-openSupportBtn?.addEventListener('click', async () => {
-  supportMessagesBox.style.display = 'block'; // Show chat box
-  try {
-    const res = await fetch(`/user/${userId}`);
-    const data = await res.json();
-    if (data.success) renderSupportMessages(data.supportMessages || []);
-  } catch (err) {
-    console.error('Error loading support messages:', err);
-  }
+openSupportBtn?.addEventListener('click', () => {
+  if (!supportChatWindow || !supportMessagesBox) return;
+  supportChatWindow.style.display = 'flex'; // Show chat window
+  supportMessagesBox.style.display = 'block';
+
+  // Fetch past messages from backend
+  fetch(`/support/messages/${userId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) renderSupportMessages(data.messages || []);
+    })
+    .catch(err => console.error('Error loading support messages:', err));
 });
 
 // ==========================
