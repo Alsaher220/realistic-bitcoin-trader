@@ -124,7 +124,7 @@ async function reduceUser(userId) {
 }
 
 // ==========================
-// Support Chat (Real-Time)
+// Support Chat (Real-Time) - FIXED VERSION
 // ==========================
 const supportChatWindow = document.getElementById('supportChatWindow');
 const supportMessages = document.getElementById('supportMessages');
@@ -148,7 +148,7 @@ function openSupportChat(userId) {
   supportPollInterval = setInterval(fetchSupportMessages, 1000);
 }
 
-// Fetch messages and only show new ones
+// Fetch messages and only show new ones - FIXED VERSION
 async function fetchSupportMessages() {
   if (!currentChatUserId) return;
   try {
@@ -156,15 +156,19 @@ async function fetchSupportMessages() {
       headers: { 'x-user-id': adminId }
     });
     const data = await res.json();
+    
     if (data.success && Array.isArray(data.messages)) {
       let added = false;
       data.messages.forEach(msg => {
-        if (!displayedMessageIds.has(msg.id)) {
+        // FIX: Use msg.id from backend (Postgres returns 'id'), fallback to created_at-based ID
+        const msgId = msg.id || msg._id || `${msg.created_at}-${msg.sender}`;
+        
+        if (!displayedMessageIds.has(msgId)) {
           const sender = msg.sender === 'admin' ? 'You' : 'User';
           const div = document.createElement('div');
           div.innerHTML = `<b>${sender}:</b> ${escapeHtml(msg.message)}`;
           supportMessages.appendChild(div);
-          displayedMessageIds.add(msg.id);
+          displayedMessageIds.add(msgId);
           added = true;
         }
       });
