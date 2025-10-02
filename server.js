@@ -23,9 +23,22 @@ pool.connect()
   })
   .catch(err => console.error("Postgres connection error:", err.stack));
 
-// ------------------- SEED / FIX EXISTING USERS -------------------
+// ------------------- DATABASE SETUP & SEED -------------------
 (async () => {
   try {
+    // Create support_messages table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS support_messages (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        message TEXT NOT NULL,
+        sender VARCHAR(10) NOT NULL CHECK (sender IN ('user', 'admin')),
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    console.log("Support messages table ensured.");
+
+    // Fix existing users
     await pool.query(`
       UPDATE users
       SET preferred_name = username
@@ -38,7 +51,7 @@ pool.connect()
     `);
     console.log("Existing users fixed: preferred_name and cash ensured.");
   } catch (err) {
-    console.error("Error seeding existing users:", err.stack);
+    console.error("Error setting up database:", err.stack);
   }
 })();
 
@@ -343,8 +356,12 @@ app.get('/admin-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'pub
 
 // ------------------- ERROR HANDLING -------------------
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err.stack);
-  res.status(500).json({ success: false, message: 'Server error' });
+  console.error("=== UNHANDLED ERROR ===");
+  console.error("Path:", req.path);
+  console.error("Method:", req.method);
+  console.error("Error:", err.stack);
+  console.error("=======================");
+  res.status(500).json({ success: false, message: 'Server error', error: err.message });
 });
 
 // ------------------- START SERVER -------------------
