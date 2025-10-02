@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Full Version with Fixed Support Chat)
+// TradeSphere Admin Dashboard JS (Full Version with Real-Time Support Chat)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -133,6 +133,7 @@ const sendSupportMessageBtn = document.getElementById('sendSupportMessage');
 
 let currentChatUserId = null;
 let supportPollInterval = null;
+let lastMessageId = 0; // tracks last message received
 
 // Open chat window without selecting a user
 document.getElementById('openSupportChat')?.addEventListener('click', () => {
@@ -144,6 +145,7 @@ document.getElementById('openSupportChat')?.addEventListener('click', () => {
 // Open chat for a specific user
 function openSupportChat(userId) {
   currentChatUserId = userId;
+  lastMessageId = 0; // reset for new user
   supportChatWindow.style.display = 'flex';
   fetchSupportMessages();
 
@@ -152,25 +154,23 @@ function openSupportChat(userId) {
   supportPollInterval = setInterval(fetchSupportMessages, 1000);
 }
 
-// Fetch support messages
+// Fetch only new support messages
 async function fetchSupportMessages() {
   if (!currentChatUserId) return;
   try {
-    const res = await fetch(`/admin/support/messages/${currentChatUserId}`, {
+    const res = await fetch(`/admin/support/messages/new/${currentChatUserId}/${lastMessageId}`, {
       headers: { 'x-user-id': adminId }
     });
     const data = await res.json();
-    if (data.success && Array.isArray(data.messages)) {
-      supportMessages.innerHTML = '';
+    if (data.success && Array.isArray(data.messages) && data.messages.length) {
       data.messages.forEach(msg => {
         const sender = msg.sender === 'admin' ? 'You' : 'User';
         const div = document.createElement('div');
         div.innerHTML = `<b>${sender}:</b> ${escapeHtml(msg.message)}`;
         supportMessages.appendChild(div);
+        lastMessageId = msg.id; // update last message ID
       });
       supportMessages.scrollTop = supportMessages.scrollHeight;
-    } else {
-      supportMessages.innerHTML = `<div style="color:#888;">No messages yet.</div>`;
     }
   } catch (err) {
     console.error(err);
@@ -217,7 +217,7 @@ function escapeHtml(unsafe) {
 // ==========================
 async function refreshAll() {
   await fetchUsers();
-  // Other fetch functions like trades, withdrawals, investments...
+  // Add other fetch functions for trades, withdrawals, investments, topups if needed
 }
 refreshAll();
 setInterval(refreshAll, 5000);
