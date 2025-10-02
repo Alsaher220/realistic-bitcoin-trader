@@ -1,5 +1,5 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Full & Fixed Top-Up + Support + Info + Reduce)
+// TradeSphere Admin Dashboard JS (Full & Fixed Top-Up + Support + Info + Reduce + Open Chat)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
@@ -171,26 +171,191 @@ async function fetchTrades() {
 // ==========================
 // Fetch Withdrawals
 // ==========================
-// (unchanged, same as yours)
+async function fetchWithdrawals() {
+  try {
+    const res = await fetch('/admin/withdrawals', { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    withdrawalsTableBody.innerHTML = '';
+
+    if (data.success && Array.isArray(data.withdrawals) && data.withdrawals.length) {
+      data.withdrawals.forEach(w => {
+        const username = w.username || 'Unknown';
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${username}</td>
+          <td>${new Date(w.date).toLocaleString()}</td>
+          <td>${Number(w.amount).toFixed(2)}</td>
+          <td>${w.wallet || '-'}</td>
+          <td>${w.status}</td>
+          <td>${w.status === 'pending' ? `<button onclick="approveWithdrawal('${w.id || w._id}')">Approve</button>` : '-'}</td>
+        `;
+        withdrawalsTableBody.appendChild(row);
+      });
+    } else {
+      withdrawalsTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No withdrawals</td></tr>`;
+    }
+  } catch (err) {
+    showAlert(withdrawalAlert, 'Error fetching withdrawals', false);
+    console.error(err);
+  }
+}
+
 // ==========================
+// Approve Withdrawal
+// ==========================
+async function approveWithdrawal(withdrawalId) {
+  try {
+    const res = await fetch('/admin/withdrawals/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
+      body: JSON.stringify({ withdrawalId })
+    });
+    const data = await res.json();
+    showAlert(withdrawalAlert, data.message || 'Processed', data.success);
+    fetchWithdrawals();
+  } catch (err) {
+    showAlert(withdrawalAlert, 'Approval failed', false);
+    console.error(err);
+  }
+}
 
 // ==========================
 // Fetch Investments
 // ==========================
-// (unchanged, same as yours)
-// ==========================
+async function fetchInvestments() {
+  try {
+    const res = await fetch('/admin/investments', { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    investmentsTableBody.innerHTML = '';
+
+    if (data.success && Array.isArray(data.investments) && data.investments.length) {
+      data.investments.forEach(inv => {
+        const username = inv.username || 'Unknown';
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${username}</td>
+          <td>$${Number(inv.amount).toFixed(2)}</td>
+          <td>${inv.plan}</td>
+          <td>${inv.status}</td>
+          <td>${new Date(inv.created_at || inv.date).toLocaleString()}</td>
+        `;
+        investmentsTableBody.appendChild(row);
+      });
+    } else {
+      investmentsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No investments</td></tr>`;
+    }
+  } catch (err) {
+    showAlert(investmentAlert, 'Error fetching investments', false);
+    console.error(err);
+  }
+}
 
 // ==========================
 // Fetch Top-Ups
 // ==========================
-// (unchanged, same as yours)
-// ==========================
+async function fetchTopups() {
+  try {
+    const res = await fetch('/admin/topups', { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    topupTableBody.innerHTML = '';
+
+    if (data.success && Array.isArray(data.topups) && data.topups.length) {
+      const topups = data.topups.sort((a, b) => (Number(b.id || b._id) - Number(a.id || a._id)));
+      topups.forEach(entry => {
+        const id = entry.id || entry._id;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${id}</td>
+          <td>${entry.username || entry.user || 'Unknown'}</td>
+          <td>${entry.amount}</td>
+          <td>${entry.admin || entry.admin_id || 'Admin'}</td>
+          <td>${new Date(entry.date).toLocaleString()}</td>
+        `;
+        topupTableBody.appendChild(row);
+      });
+    } else {
+      topupTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No top-ups</td></tr>`;
+    }
+  } catch (err) {
+    console.error('Error fetching top-ups:', err);
+    topupTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Failed to load top-up history.</td></tr>`;
+  }
+}
 
 // ==========================
 // Support Messages
 // ==========================
-// (unchanged, same as yours)
-// ==========================
+async function fetchSupportMessages() {
+  try {
+    if (!supportTableBody) return;
+    const res = await fetch('/admin/support', { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    supportTableBody.innerHTML = '';
+
+    if (data.success && Array.isArray(data.messages) && data.messages.length) {
+      data.messages.forEach(msg => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${msg.username || 'Unknown'}</td>
+          <td style="text-align:left;">${escapeHtml(msg.message)}</td>
+          <td>${msg.sender}</td>
+          <td>${new Date(msg.created_at).toLocaleString()}</td>
+          <td>
+            <button onclick="replySupport(${msg.user_id}, ${msg.id})">Reply</button>
+            <button onclick="openSupportChat(${msg.user_id})">Open Chat</button>
+          </td>
+        `;
+        supportTableBody.appendChild(row);
+      });
+    } else {
+      supportTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No support messages</td></tr>`;
+    }
+  } catch (err) {
+    console.error('Error fetching support messages:', err);
+    supportTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Failed to load support messages.</td></tr>`;
+  }
+}
+
+// Reply to a user's support message
+async function replySupport(userId, messageId = null) {
+  const reply = prompt("Enter your reply:");
+  if (!reply) return;
+
+  try {
+    const res = await fetch('/admin/support/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
+      body: JSON.stringify({ userId, message: reply, replyTo: messageId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showAlert(userAlert, 'Reply sent!', true);
+      fetchSupportMessages();
+    } else {
+      showAlert(userAlert, data.message || 'Failed to send reply', false);
+    }
+  } catch (err) {
+    showAlert(userAlert, 'Error sending reply', false);
+    console.error(err);
+  }
+}
+
+// NEW: Open Support Chat Page
+function openSupportChat(userId) {
+  window.location.href = `admin-support-chat.html?userId=${userId}`;
+}
+
+// Simple HTML escape for messages
+function escapeHtml(unsafe) {
+  if (unsafe === null || unsafe === undefined) return '';
+  return unsafe
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 // ==========================
 // Refresh All
