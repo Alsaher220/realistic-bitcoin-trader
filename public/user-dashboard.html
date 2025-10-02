@@ -38,6 +38,14 @@
     .close:hover {
       color: red;
     }
+    .messages-box {
+      max-height: 250px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: none; /* Hidden initially, shown when Open Chat is clicked */
+    }
   </style>
 </head>
 <body>
@@ -99,6 +107,7 @@
     <!-- Support Section -->
     <section class="support card">
       <h2>Support</h2>
+      <button id="openSupportBtn">Open Chat</button>
       <div id="supportMessages" class="messages-box"></div>
       <form id="supportForm">
         <textarea id="supportMessage" placeholder="Type your message..." required></textarea>
