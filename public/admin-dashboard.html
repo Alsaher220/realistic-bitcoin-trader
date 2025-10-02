@@ -17,8 +17,8 @@
       border: 1px solid #ccc;
       background: #fff;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      display: flex;
       flex-direction: column;
+      display: flex;
     }
     #supportChatHeader {
       background: #333;
@@ -71,6 +71,7 @@
           <th>BTC</th>
           <th>Top Up</th>
           <th>Reduce</th>
+          <th>Chat</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -148,7 +149,8 @@
     <!-- Support Chat Window -->
     <div id="supportChatWindow">
       <div id="supportChatHeader">Support Chat 
-        <button onclick="document.getElementById('supportChatWindow').style.display='none'" style="float:right;background:red;color:white;border:none;">X</button>
+        <button onclick="document.getElementById('supportChatWindow').style.display='none'" 
+                style="float:right;background:red;color:white;border:none;">X</button>
       </div>
       <div id="supportMessages"></div>
       <div id="supportInput">
@@ -163,10 +165,43 @@
   ======================= -->
   <script src="admin-dashboard.js"></script>
   <script>
-    // Open Support Chat
+    // Open chat without user selected (optional global chat)
     document.getElementById('openSupportChat').addEventListener('click', () => {
-      document.getElementById('supportChatWindow').style.display = 'flex';
+      const chatWindow = document.getElementById('supportChatWindow');
+      chatWindow.style.display = 'flex';
+      chatWindow.dataset.userId = ''; // No specific user selected
+      document.getElementById('supportMessages').innerHTML = '<div style="color:#888;text-align:center;">Select a user from Users table to chat.</div>';
     });
+
+    // Open chat for a specific user from JS table row
+    function openSupportChat(userId) {
+      const chatWindow = document.getElementById('supportChatWindow');
+      chatWindow.style.display = 'flex';
+      chatWindow.dataset.userId = userId;
+      const messagesDiv = document.getElementById('supportMessages');
+      messagesDiv.innerHTML = `<div>Loading messages for user ${userId}...</div>`;
+      
+      // Fetch previous messages from backend
+      fetch(`/admin/support/messages/${userId}`, {
+        headers: { 'x-user-id': localStorage.getItem('userId') }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.messages)) {
+          messagesDiv.innerHTML = '';
+          data.messages.forEach(msg => {
+            const sender = msg.sender === 'admin' ? 'You' : 'User';
+            const div = document.createElement('div');
+            div.innerHTML = `<b>${sender}:</b> ${msg.message}`;
+            messagesDiv.appendChild(div);
+          });
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        } else {
+          messagesDiv.innerHTML = `<div style="color:#888;">No messages yet.</div>`;
+        }
+      })
+      .catch(err => console.error(err));
+    }
   </script>
 </body>
 </html>
