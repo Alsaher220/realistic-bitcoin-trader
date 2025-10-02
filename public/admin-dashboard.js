@@ -137,11 +137,23 @@ let displayedMessageIds = new Set();
 
 // Open chat for a specific user
 function openSupportChat(userId) {
-  if (!userId) return alert('Invalid user selected!');
+  console.log('openSupportChat called with userId:', userId, 'type:', typeof userId);
+  
+  if (!userId || userId === 'undefined' || userId === 'null') {
+    alert('Invalid user selected! UserId: ' + userId);
+    return;
+  }
+  
   currentChatUserId = userId;
+  
+  if (!supportChatWindow) {
+    alert('Chat window element not found! Check your HTML.');
+    return;
+  }
+  
   supportChatWindow.style.display = 'flex';
   displayedMessageIds.clear();
-  supportMessages.innerHTML = '';
+  supportMessages.innerHTML = '<div style="color:#888;">Loading messages...</div>';
   fetchSupportMessages();
 
   if (supportPollInterval) clearInterval(supportPollInterval);
