@@ -1,5 +1,5 @@
 // =========================
-// TradeSphere Dashboard JS with Support Chat (Merged for User Dashboard)
+// TradeSphere User Dashboard JS with Live Support Chat
 // =========================
 
 const userId = localStorage.getItem('userId');
@@ -18,6 +18,7 @@ const supportMessageInput = document.getElementById('supportMessage');
 const openSupportBtn = document.getElementById('openSupportBtn');
 
 const START_CASH = 50;
+let supportPollInterval = null;
 
 // ==========================
 // Show Alerts
@@ -37,7 +38,6 @@ async function fetchUserData() {
   try {
     const res = await fetch(`/user/${userId}`);
     const data = await res.json();
-
     if (!data.success) return;
 
     const user = data.user;
@@ -64,11 +64,10 @@ async function fetchUserData() {
 // ==========================
 function renderWithdrawals(withdrawals = []) {
   withdrawalsTable.innerHTML = '';
-  if (withdrawals.length === 0) {
+  if (!withdrawals.length) {
     withdrawalsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No withdrawals yet</td></tr>`;
     return;
   }
-
   withdrawals.forEach(w => {
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -86,11 +85,10 @@ function renderWithdrawals(withdrawals = []) {
 // ==========================
 function renderInvestments(investments = []) {
   investmentsTable.innerHTML = '';
-  if (investments.length === 0) {
+  if (!investments.length) {
     investmentsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No investments yet</td></tr>`;
     return;
   }
-
   investments.forEach(inv => {
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -110,7 +108,7 @@ function renderSupportMessages(messages = []) {
   if (!supportMessagesBox) return;
 
   supportMessagesBox.innerHTML = '';
-  if (messages.length === 0) {
+  if (!messages.length) {
     supportMessagesBox.innerHTML = `<p style="text-align:center;color:#666;">No messages yet.</p>`;
     return;
   }
@@ -125,10 +123,7 @@ function renderSupportMessages(messages = []) {
     const messageText = msg.message || msg.text || '';
     const timestamp = msg.created_at || msg.date || Date.now();
 
-    div.innerHTML = `
-      <strong>${senderLabel}:</strong> ${messageText}<br>
-      <small style="color:#888;">${new Date(timestamp).toLocaleString()}</small>
-    `;
+    div.innerHTML = `<strong>${senderLabel}:</strong> ${messageText}<br><small style="color:#888;">${new Date(timestamp).toLocaleString()}</small>`;
     supportMessagesBox.appendChild(div);
   });
 
@@ -168,29 +163,41 @@ supportForm?.addEventListener('submit', async e => {
   if (!message) return;
 
   try {
-    const res = await fetch('/support/message', {
+    const res = await fetch('/support/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, message })
     });
     const data = await res.json();
-
     if (data.success) {
-      showAlert(supportAlert, data.message || 'Message sent to support!', true);
-
       const newMsg = { sender: 'user', message, created_at: Date.now() };
       const updatedMessages = [...(supportMessagesBox._currentMessages || []), newMsg];
       renderSupportMessages(updatedMessages);
-
       supportMessageInput.value = '';
+      showAlert(supportAlert, 'Message sent to support!', true);
     } else {
       showAlert(supportAlert, data.message || 'Failed to send message', false);
     }
   } catch (err) {
     showAlert(supportAlert, 'Error sending support message', false);
-    console.error(err);
   }
 });
+
+// ==========================
+// Live Support Polling
+// ==========================
+function startSupportPolling() {
+  if (supportPollInterval) clearInterval(supportPollInterval);
+  supportPollInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`/support/messages/${userId}`);
+      const data = await res.json();
+      if (data.success) renderSupportMessages(data.messages || []);
+    } catch (err) {
+      console.error('Error polling support messages:', err);
+    }
+  }, 1000);
+}
 
 // ==========================
 // Open Support Chat Button
@@ -198,18 +205,9 @@ supportForm?.addEventListener('submit', async e => {
 openSupportBtn?.addEventListener('click', () => {
   if (!supportMessagesBox) return;
 
-  // Toggle visibility
   supportMessagesBox.style.display = supportMessagesBox.style.display === 'block' ? 'none' : 'block';
-
-  // Fetch messages if opening
-  if (supportMessagesBox.style.display === 'block') {
-    fetch(`/support/messages/${userId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) renderSupportMessages(data.messages || []);
-      })
-      .catch(err => console.error('Error fetching support messages:', err));
-  }
+  if (supportMessagesBox.style.display === 'block') startSupportPolling();
+  else clearInterval(supportPollInterval);
 });
 
 // ==========================
@@ -220,19 +218,9 @@ const aboutModal = document.getElementById('aboutModal');
 const aboutClose = document.getElementById('aboutClose');
 
 if (aboutBtn && aboutModal && aboutClose) {
-  aboutBtn.addEventListener('click', () => {
-    aboutModal.style.display = 'block';
-  });
-
-  aboutClose.addEventListener('click', () => {
-    aboutModal.style.display = 'none';
-  });
-
-  window.addEventListener('click', e => {
-    if (e.target === aboutModal) {
-      aboutModal.style.display = 'none';
-    }
-  });
+  aboutBtn.addEventListener('click', () => { aboutModal.style.display = 'block'; });
+  aboutClose.addEventListener('click', () => { aboutModal.style.display = 'none'; });
+  window.addEventListener('click', e => { if (e.target === aboutModal) aboutModal.style.display = 'none'; });
 }
 
 // ==========================
