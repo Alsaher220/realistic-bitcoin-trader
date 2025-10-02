@@ -175,17 +175,18 @@ footer {
 
 /* =======================
    Info / Support Section Fix
-   (Just added, nothing else changed)
 ========================== */
-.info-section, .support-message {
-    color: #f0f0f0;          /* Ensure text is visible */
-    font-size: 1rem;         /* Readable size */
-    line-height: 1.6;        /* Proper spacing */
-    background-color: transparent; /* Keep container background */
-    filter: none;            /* Remove any blur/filter */
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    text-shadow: none;       /* Remove blur shadow if any */
-    white-space: pre-wrap;   /* Preserve line breaks in support/info text */
-    word-wrap: break-word;   /* Avoid overflow */
+.info-section, 
+.support-message {
+    color: #f0f0f0 !important;      /* Force clear white text */
+    font-size: 1rem;
+    line-height: 1.6;
+    background: none !important;    /* No blurry background */
+    filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    text-shadow: none !important;   /* Remove blur/glow */
+    white-space: pre-wrap;          /* Preserve line breaks */
+    word-wrap: break-word;
+    opacity: 1 !important;          /* Ensure 100% visibility */
 }
