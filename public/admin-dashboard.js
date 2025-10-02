@@ -124,7 +124,7 @@ async function reduceUser(userId) {
 }
 
 // ==========================
-// Support Chat
+// Support Chat (Real-Time)
 // ==========================
 const supportChatWindow = document.getElementById('supportChatWindow');
 const supportMessages = document.getElementById('supportMessages');
@@ -133,44 +133,42 @@ const sendSupportMessageBtn = document.getElementById('sendSupportMessage');
 
 let currentChatUserId = null;
 let supportPollInterval = null;
-let lastMessageId = 0; // tracks last message received
-
-// Open chat window without selecting a user
-document.getElementById('openSupportChat')?.addEventListener('click', () => {
-  supportChatWindow.style.display = 'flex';
-  currentChatUserId = null;
-  supportMessages.innerHTML = '<div style="color:#888;text-align:center;">Select a user from Users table to chat.</div>';
-});
+let displayedMessageIds = new Set();
 
 // Open chat for a specific user
 function openSupportChat(userId) {
+  if (!userId) return alert('Invalid user selected!');
   currentChatUserId = userId;
-  lastMessageId = 0; // reset for new user
   supportChatWindow.style.display = 'flex';
+  displayedMessageIds.clear();
+  supportMessages.innerHTML = '';
   fetchSupportMessages();
 
-  // Poll every second
   if (supportPollInterval) clearInterval(supportPollInterval);
   supportPollInterval = setInterval(fetchSupportMessages, 1000);
 }
 
-// Fetch only new support messages
+// Fetch messages and only show new ones
 async function fetchSupportMessages() {
   if (!currentChatUserId) return;
   try {
-    const res = await fetch(`/admin/support/messages/new/${currentChatUserId}/${lastMessageId}`, {
+    const res = await fetch(`/admin/support/messages/${currentChatUserId}`, {
       headers: { 'x-user-id': adminId }
     });
     const data = await res.json();
-    if (data.success && Array.isArray(data.messages) && data.messages.length) {
+    if (data.success && Array.isArray(data.messages)) {
+      let added = false;
       data.messages.forEach(msg => {
-        const sender = msg.sender === 'admin' ? 'You' : 'User';
-        const div = document.createElement('div');
-        div.innerHTML = `<b>${sender}:</b> ${escapeHtml(msg.message)}`;
-        supportMessages.appendChild(div);
-        lastMessageId = msg.id; // update last message ID
+        if (!displayedMessageIds.has(msg.id)) {
+          const sender = msg.sender === 'admin' ? 'You' : 'User';
+          const div = document.createElement('div');
+          div.innerHTML = `<b>${sender}:</b> ${escapeHtml(msg.message)}`;
+          supportMessages.appendChild(div);
+          displayedMessageIds.add(msg.id);
+          added = true;
+        }
       });
-      supportMessages.scrollTop = supportMessages.scrollHeight;
+      if (added) supportMessages.scrollTop = supportMessages.scrollHeight;
     }
   } catch (err) {
     console.error(err);
@@ -178,7 +176,7 @@ async function fetchSupportMessages() {
   }
 }
 
-// Send admin message to user
+// Send admin message
 sendSupportMessageBtn?.addEventListener('click', async () => {
   const message = supportMessageInput.value.trim();
   if (!message || !currentChatUserId) return alert('No user selected or empty message!');
