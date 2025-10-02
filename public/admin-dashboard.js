@@ -290,30 +290,30 @@ const supportMessages = document.getElementById('supportMessages');
 const supportMessageInput = document.getElementById('supportMessageInput');
 const sendSupportMessageBtn = document.getElementById('sendSupportMessage');
 
+let currentChatUserId = null;
+let supportPollInterval = null;
+
 document.getElementById('openSupportChat').addEventListener('click', () => {
   supportChatWindow.style.display = 'flex';
-  supportChatWindow.dataset.userId = '';
+  currentChatUserId = null;
   supportMessages.innerHTML = '<div style="color:#888;text-align:center;">Select a user from Users table to chat.</div>';
 });
 
 sendSupportMessageBtn.addEventListener('click', async () => {
   const message = supportMessageInput.value.trim();
   if (!message) return;
-
-  const userId = supportChatWindow.dataset.userId;
-  if (!userId) return alert('No user selected for chat!');
+  if (!currentChatUserId) return alert('No user selected for chat!');
 
   try {
     const res = await fetch('/admin/support/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
-      body: JSON.stringify({ userId, message })
+      body: JSON.stringify({ userId: currentChatUserId, message })
     });
     const data = await res.json();
     if (data.success) {
-      supportMessages.innerHTML += `<div><b>You:</b> ${escapeHtml(message)}</div>`;
       supportMessageInput.value = '';
-      supportMessages.scrollTop = supportMessages.scrollHeight;
+      fetchSupportMessages(currentChatUserId);
     } else {
       alert('Failed to send message.');
     }
@@ -323,17 +323,22 @@ sendSupportMessageBtn.addEventListener('click', async () => {
   }
 });
 
-// Open chat with a specific user
 function openSupportChat(userId) {
+  currentChatUserId = userId;
   supportChatWindow.style.display = 'flex';
-  supportChatWindow.dataset.userId = userId;
-  supportMessages.innerHTML = `<div>Loading messages for user ${userId}...</div>`;
-  // Optionally fetch previous messages here via API
-  fetch(`/admin/support/messages/${userId}`, {
-    headers: { 'x-user-id': adminId }
-  })
-  .then(res => res.json())
-  .then(data => {
+  fetchSupportMessages(userId);
+
+  if (supportPollInterval) clearInterval(supportPollInterval);
+  supportPollInterval = setInterval(() => fetchSupportMessages(userId), 1000);
+}
+
+async function fetchSupportMessages(userId) {
+  if (!userId) return;
+  try {
+    const res = await fetch(`/admin/support/messages/${userId}`, {
+      headers: { 'x-user-id': adminId }
+    });
+    const data = await res.json();
     if (data.success && Array.isArray(data.messages)) {
       supportMessages.innerHTML = '';
       data.messages.forEach(msg => {
@@ -346,14 +351,12 @@ function openSupportChat(userId) {
     } else {
       supportMessages.innerHTML = `<div style="color:#888;">No messages yet.</div>`;
     }
-  })
-  .catch(err => {
+  } catch (err) {
     console.error(err);
     supportMessages.innerHTML = `<div style="color:#888;">Failed to load messages.</div>`;
-  });
+  }
 }
 
-// HTML escape
 function escapeHtml(unsafe) {
   if (unsafe === null || unsafe === undefined) return '';
   return unsafe.toString()
@@ -375,7 +378,6 @@ function refreshAll() {
   fetchTopups();
 }
 
-// Initial fetch + auto-refresh every 5s
 refreshAll();
 setInterval(refreshAll, 5000);
 
