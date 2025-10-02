@@ -1,5 +1,5 @@
 // =========================
-// TradeSphere Dashboard JS with Support Chat Open Button (Full Merge)
+// TradeSphere Dashboard JS with Support Chat (Merged for User Dashboard)
 // =========================
 
 const userId = localStorage.getItem('userId');
@@ -11,14 +11,24 @@ const btcSpan = document.getElementById('btc');
 const withdrawalsTable = document.querySelector('#withdrawalsTable tbody');
 const investmentsTable = document.querySelector('#investmentsTable tbody');
 const withdrawAlert = document.getElementById('withdrawAlert');
-const supportAlert = document.getElementById('supportAlert'); // Support feedback
+const supportAlert = document.getElementById('supportAlert');
 const supportMessagesBox = document.getElementById('supportMessages');
-const openSupportBtn = document.getElementById('openSupportBtn'); // Button to open chat
-const supportChatWindow = document.getElementById('supportChatWindow'); // Full chat window
-const supportMessageInput = document.getElementById('supportMessageInput');
-const sendSupportMessageBtn = document.getElementById('sendSupportMessage');
+const supportForm = document.getElementById('supportForm');
+const supportMessageInput = document.getElementById('supportMessage');
+const openSupportBtn = document.getElementById('openSupportBtn');
 
 const START_CASH = 50;
+
+// ==========================
+// Show Alerts
+// ==========================
+function showAlert(el, msg, isSuccess = true) {
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `alert ${isSuccess ? 'success' : 'error'}`;
+  el.style.display = 'block';
+  setTimeout(() => (el.style.display = 'none'), 3000);
+}
 
 // ==========================
 // Fetch User Data
@@ -31,7 +41,6 @@ async function fetchUserData() {
     if (!data.success) return;
 
     const user = data.user;
-
     usernameSpan.textContent = user.preferred_name || user.preferredName || user.username || 'Unknown';
 
     let cash = parseFloat(user.cash);
@@ -44,11 +53,7 @@ async function fetchUserData() {
 
     renderWithdrawals(data.withdrawals || []);
     renderInvestments(data.investments || []);
-
-    // Render support messages if chat window is open
-    if (supportChatWindow && supportChatWindow.style.display === 'flex') {
-      renderSupportMessages(data.supportMessages || []);
-    }
+    renderSupportMessages(data.supportMessages || []);
   } catch (err) {
     console.error('Error fetching user data:', err);
   }
@@ -132,23 +137,13 @@ function renderSupportMessages(messages = []) {
 }
 
 // ==========================
-// Show Alerts
-// ==========================
-function showAlert(el, msg, isSuccess = true) {
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `alert ${isSuccess ? 'success' : 'error'}`;
-  el.style.display = 'block';
-  setTimeout(() => (el.style.display = 'none'), 3000);
-}
-
-// ==========================
-// Withdraw
+// Withdraw Functionality
 // ==========================
 document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('withdrawAmount').value);
   const wallet = document.getElementById('withdrawWallet').value;
+
   try {
     const res = await fetch('/withdraw', {
       method: 'POST',
@@ -165,9 +160,10 @@ document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
 });
 
 // ==========================
-// Support - Send Message
+// Support Form Submission
 // ==========================
-sendSupportMessageBtn?.addEventListener('click', async () => {
+supportForm?.addEventListener('submit', async e => {
+  e.preventDefault();
   const message = supportMessageInput.value.trim();
   if (!message) return;
 
@@ -182,7 +178,7 @@ sendSupportMessageBtn?.addEventListener('click', async () => {
     if (data.success) {
       showAlert(supportAlert, data.message || 'Message sent to support!', true);
 
-      const newMsg = { sender: 'user', message: message, created_at: Date.now() };
+      const newMsg = { sender: 'user', message, created_at: Date.now() };
       const updatedMessages = [...(supportMessagesBox._currentMessages || []), newMsg];
       renderSupportMessages(updatedMessages);
 
@@ -197,24 +193,27 @@ sendSupportMessageBtn?.addEventListener('click', async () => {
 });
 
 // ==========================
-// Open Support Chat on Click
+// Open Support Chat Button
 // ==========================
 openSupportBtn?.addEventListener('click', () => {
-  if (!supportChatWindow || !supportMessagesBox) return;
-  supportChatWindow.style.display = 'flex'; // Show chat window
-  supportMessagesBox.style.display = 'block';
+  if (!supportMessagesBox) return;
 
-  // Fetch past messages from backend
-  fetch(`/support/messages/${userId}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) renderSupportMessages(data.messages || []);
-    })
-    .catch(err => console.error('Error loading support messages:', err));
+  // Toggle visibility
+  supportMessagesBox.style.display = supportMessagesBox.style.display === 'block' ? 'none' : 'block';
+
+  // Fetch messages if opening
+  if (supportMessagesBox.style.display === 'block') {
+    fetch(`/support/messages/${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) renderSupportMessages(data.messages || []);
+      })
+      .catch(err => console.error('Error fetching support messages:', err));
+  }
 });
 
 // ==========================
-// About Company Modal Logic
+// About Company Modal
 // ==========================
 const aboutBtn = document.getElementById('aboutBtn');
 const aboutModal = document.getElementById('aboutModal');
@@ -237,12 +236,6 @@ if (aboutBtn && aboutModal && aboutClose) {
 }
 
 // ==========================
-// Initial fetch + auto-refresh
-// ==========================
-fetchUserData();
-setInterval(fetchUserData, 5000);
-
-// ==========================
 // Logout
 // ==========================
 function logout() {
@@ -250,3 +243,9 @@ function logout() {
   window.location.href = 'index.html';
 }
 document.getElementById('logoutBtn')?.addEventListener('click', logout);
+
+// ==========================
+// Initial Fetch + Auto-Refresh
+// ==========================
+fetchUserData();
+setInterval(fetchUserData, 5000);
