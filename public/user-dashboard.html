@@ -35,9 +35,7 @@
       cursor: pointer;
       color: #333;
     }
-    .close:hover {
-      color: red;
-    }
+    .close:hover { color: red; }
     .messages-box {
       max-height: 250px;
       overflow-y: auto;
@@ -52,14 +50,8 @@
       display: none;
       border-radius: 5px;
     }
-    .alert.success {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    .alert.error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
+    .alert.success { background-color: #d4edda; color: #155724; }
+    .alert.error { background-color: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
@@ -107,7 +99,6 @@
       </table>
     </section>
 
-    <!-- Withdraw Section -->
     <section class="withdraw card">
       <h2>Withdraw</h2>
       <form id="withdrawForm">
@@ -118,7 +109,6 @@
       <div id="withdrawAlert" class="alert"></div>
     </section>
 
-    <!-- Support Section -->
     <section class="support card">
       <h2>Support</h2>
       <button id="openSupportBtn">Open Chat</button>
@@ -134,7 +124,6 @@
       </p>
     </section>
 
-    <!-- About Company Button -->
     <section class="about card">
       <button id="aboutBtn">About Company</button>
     </section>
@@ -183,9 +172,6 @@
 
     const START_CASH = 50;
 
-    // ==========================
-    // Show Alerts
-    // ==========================
     function showAlert(el, msg, isSuccess = true) {
       if (!el) return;
       el.textContent = msg;
@@ -194,24 +180,17 @@
       setTimeout(() => (el.style.display = 'none'), 3000);
     }
 
-    // ==========================
-    // Fetch User Data
-    // ==========================
     async function fetchUserData() {
       try {
         const res = await fetch(`/user/${userId}`);
         const data = await res.json();
-
         if (!data.success) return;
 
         const user = data.user;
-
         usernameSpan.textContent = user.preferred_name || user.preferredName || user.username || 'Unknown';
-
         let cash = parseFloat(user.cash);
         if (isNaN(cash) || cash === null) cash = START_CASH;
         cashSpan.textContent = cash.toFixed(2);
-
         let btc = parseFloat(user.btc);
         if (isNaN(btc) || btc === null) btc = 0;
         btcSpan.textContent = btc.toFixed(6);
@@ -224,16 +203,12 @@
       }
     }
 
-    // ==========================
-    // Render Withdrawals
-    // ==========================
     function renderWithdrawals(withdrawals = []) {
       withdrawalsTable.innerHTML = '';
       if (withdrawals.length === 0) {
         withdrawalsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No withdrawals yet</td></tr>`;
         return;
       }
-
       withdrawals.forEach(w => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -246,16 +221,12 @@
       });
     }
 
-    // ==========================
-    // Render Investments
-    // ==========================
     function renderInvestments(investments = []) {
       investmentsTable.innerHTML = '';
       if (investments.length === 0) {
         investmentsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No investments yet</td></tr>`;
         return;
       }
-
       investments.forEach(inv => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -268,47 +239,30 @@
       });
     }
 
-    // ==========================
-    // Render Support Messages
-    // ==========================
     function renderSupportMessages(messages = []) {
       if (!supportMessagesBox) return;
-
       supportMessagesBox.innerHTML = '';
       if (messages.length === 0) {
         supportMessagesBox.innerHTML = `<p style="text-align:center;color:#666;">No messages yet.</p>`;
         return;
       }
-
       messages.forEach(msg => {
         const div = document.createElement('div');
-        div.className = 'support-message';
         div.style.borderBottom = '1px solid #ddd';
         div.style.padding = '5px 0';
-
         const senderLabel = msg.sender === 'user' ? 'You' : 'Support';
-        const messageText = msg.message || msg.text || '';
-        const timestamp = msg.created_at || msg.date || Date.now();
-
-        div.innerHTML = `
-          <strong>${senderLabel}:</strong> ${messageText}<br>
-          <small style="color:#888;">${new Date(timestamp).toLocaleString()}</small>
-        `;
+        div.innerHTML = `<strong>${senderLabel}:</strong> ${msg.message || msg.text || ''}<br>
+        <small style="color:#888;">${new Date(msg.created_at || msg.date || Date.now()).toLocaleString()}</small>`;
         supportMessagesBox.appendChild(div);
       });
-
       supportMessagesBox.scrollTop = supportMessagesBox.scrollHeight;
       supportMessagesBox._currentMessages = messages;
     }
 
-    // ==========================
-    // Withdraw Functionality
-    // ==========================
     document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
       e.preventDefault();
       const amount = parseFloat(document.getElementById('withdrawAmount').value);
       const wallet = document.getElementById('withdrawWallet').value;
-
       try {
         const res = await fetch('/withdraw', {
           method: 'POST',
@@ -324,14 +278,10 @@
       }
     });
 
-    // ==========================
-    // Support - Send Message
-    // ==========================
     supportForm?.addEventListener('submit', async e => {
       e.preventDefault();
       const message = supportMessageInput.value.trim();
       if (!message) return;
-
       try {
         const res = await fetch('/support/message', {
           method: 'POST',
@@ -339,14 +289,11 @@
           body: JSON.stringify({ userId, message })
         });
         const data = await res.json();
-
         if (data.success) {
           showAlert(supportAlert, data.message || 'Message sent to support!', true);
-
           const newMsg = { sender: 'user', message, created_at: Date.now() };
           const updatedMessages = [...(supportMessagesBox._currentMessages || []), newMsg];
           renderSupportMessages(updatedMessages);
-
           supportMessageInput.value = '';
         } else {
           showAlert(supportAlert, data.message || 'Failed to send message', false);
@@ -357,9 +304,6 @@
       }
     });
 
-    // ==========================
-    // Open Support Chat
-    // ==========================
     openSupportBtn?.addEventListener('click', () => {
       if (supportMessagesBox.style.display === 'none' || supportMessagesBox.style.display === '') {
         supportMessagesBox.style.display = 'block';
@@ -368,41 +312,22 @@
       }
     });
 
-    // ==========================
-    // About Company Modal Logic
-    // ==========================
     const aboutBtn = document.getElementById('aboutBtn');
     const aboutModal = document.getElementById('aboutModal');
     const aboutClose = document.getElementById('aboutClose');
 
     if (aboutBtn && aboutModal && aboutClose) {
-      aboutBtn.addEventListener('click', () => {
-        aboutModal.style.display = 'block';
-      });
-
-      aboutClose.addEventListener('click', () => {
-        aboutModal.style.display = 'none';
-      });
-
-      window.addEventListener('click', e => {
-        if (e.target === aboutModal) {
-          aboutModal.style.display = 'none';
-        }
-      });
+      aboutBtn.addEventListener('click', () => { aboutModal.style.display = 'block'; });
+      aboutClose.addEventListener('click', () => { aboutModal.style.display = 'none'; });
+      window.addEventListener('click', e => { if (e.target === aboutModal) aboutModal.style.display = 'none'; });
     }
 
-    // ==========================
-    // Logout
-    // ==========================
-    function logout() {
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
       localStorage.removeItem('userId');
       window.location.href = 'index.html';
-    }
-    document.getElementById('logoutBtn')?.addEventListener('click', logout);
+    });
 
-    // ==========================
     // Initial fetch + auto-refresh
-    // ==========================
     fetchUserData();
     setInterval(fetchUserData, 5000);
   </script>
