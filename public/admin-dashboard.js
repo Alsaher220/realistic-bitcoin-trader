@@ -55,11 +55,12 @@ async function fetchUsers() {
           <td>${btc}</td>
           <td><button onclick="topUpUser('${userId}')">Top Up</button></td>
           <td><button onclick="reduceUser('${userId}')">Reduce</button></td>
+          <td><button onclick="openSupportChat('${userId}')">Chat</button></td>
         `;
         usersTableBody.appendChild(row);
       });
     } else {
-      usersTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No users found</td></tr>`;
+      usersTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No users found</td></tr>`;
     }
   } catch (err) {
     showAlert(userAlert, 'Error fetching users', false);
@@ -282,7 +283,7 @@ async function fetchTopups() {
 }
 
 // ==========================
-// Support Chat (Open Chat Button integration)
+// Support Chat
 // ==========================
 const supportChatWindow = document.getElementById('supportChatWindow');
 const supportMessages = document.getElementById('supportMessages');
@@ -291,9 +292,10 @@ const sendSupportMessageBtn = document.getElementById('sendSupportMessage');
 
 document.getElementById('openSupportChat').addEventListener('click', () => {
   supportChatWindow.style.display = 'flex';
+  supportChatWindow.dataset.userId = '';
+  supportMessages.innerHTML = '<div style="color:#888;text-align:center;">Select a user from Users table to chat.</div>';
 });
 
-// Send support message to user
 sendSupportMessageBtn.addEventListener('click', async () => {
   const message = supportMessageInput.value.trim();
   if (!message) return;
@@ -311,6 +313,7 @@ sendSupportMessageBtn.addEventListener('click', async () => {
     if (data.success) {
       supportMessages.innerHTML += `<div><b>You:</b> ${escapeHtml(message)}</div>`;
       supportMessageInput.value = '';
+      supportMessages.scrollTop = supportMessages.scrollHeight;
     } else {
       alert('Failed to send message.');
     }
@@ -326,13 +329,34 @@ function openSupportChat(userId) {
   supportChatWindow.dataset.userId = userId;
   supportMessages.innerHTML = `<div>Loading messages for user ${userId}...</div>`;
   // Optionally fetch previous messages here via API
+  fetch(`/admin/support/messages/${userId}`, {
+    headers: { 'x-user-id': adminId }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success && Array.isArray(data.messages)) {
+      supportMessages.innerHTML = '';
+      data.messages.forEach(msg => {
+        const sender = msg.sender === 'admin' ? 'You' : 'User';
+        const div = document.createElement('div');
+        div.innerHTML = `<b>${sender}:</b> ${escapeHtml(msg.message)}`;
+        supportMessages.appendChild(div);
+      });
+      supportMessages.scrollTop = supportMessages.scrollHeight;
+    } else {
+      supportMessages.innerHTML = `<div style="color:#888;">No messages yet.</div>`;
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    supportMessages.innerHTML = `<div style="color:#888;">Failed to load messages.</div>`;
+  });
 }
 
-// Simple HTML escape
+// HTML escape
 function escapeHtml(unsafe) {
   if (unsafe === null || unsafe === undefined) return '';
-  return unsafe
-    .toString()
+  return unsafe.toString()
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
