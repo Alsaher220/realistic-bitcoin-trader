@@ -186,28 +186,27 @@ app.post('/support/message', asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Support message sent!' });
 }));
 
-// Admin views messages
-app.get('/admin/support', verifyAdmin, asyncHandler(async (req, res) => {
-  const result = await pool.query(`
-    SELECT s.id, s.message, s.sender, s.created_at, u.username 
-    FROM support_messages s
-    JOIN users u ON s.user_id = u.id
-    ORDER BY s.created_at DESC
-  `);
+// Admin views messages for a specific user
+app.get('/admin/support/messages/:userId', verifyAdmin, asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const result = await pool.query(
+    'SELECT id, message, sender, created_at FROM support_messages WHERE user_id=$1 ORDER BY created_at ASC',
+    [userId]
+  );
   res.json({ success: true, messages: result.rows });
 }));
 
-// Admin replies to a user's support message
-app.post('/admin/support/reply', verifyAdmin, asyncHandler(async (req, res) => {
+// Admin sends message to a user
+app.post('/admin/support/send', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId, message } = req.body;
-  if (!userId || !message) return res.json({ success: false, message: 'User ID and reply message required' });
+  if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
 
   await pool.query(
     'INSERT INTO support_messages (user_id, message, sender, created_at) VALUES ($1,$2,$3,NOW())',
     [userId, message, 'admin']
   );
 
-  res.json({ success: true, message: 'Reply sent!' });
+  res.json({ success: true, message: 'Message sent!' });
 }));
 
 // ------------------- ADMIN ROUTES -------------------
