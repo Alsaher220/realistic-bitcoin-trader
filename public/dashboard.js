@@ -10,12 +10,10 @@ const cashSpan = document.getElementById('cash');
 const btcSpan = document.getElementById('btc');
 const withdrawalsTable = document.querySelector('#withdrawalsTable tbody');
 const investmentsTable = document.querySelector('#investmentsTable tbody');
-const buyAlert = document.getElementById('buyAlert');
-const sellAlert = document.getElementById('sellAlert');
 const withdrawAlert = document.getElementById('withdrawAlert');
 const supportAlert = document.getElementById('supportAlert'); // Support feedback
 const supportMessagesBox = document.getElementById('supportMessages');
-const openSupportBtn = document.getElementById('openSupportBtn'); // New button to open chat
+const openSupportBtn = document.getElementById('openSupportBtn'); // Button to open chat
 
 const START_CASH = 50;
 
@@ -137,6 +135,28 @@ function showAlert(el, msg, isSuccess = true) {
   el.style.display = 'block';
   setTimeout(() => (el.style.display = 'none'), 3000);
 }
+
+// ==========================
+// Withdraw
+// ==========================
+document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const amount = parseFloat(document.getElementById('withdrawAmount').value);
+  const wallet = document.getElementById('withdrawWallet').value;
+  try {
+    const res = await fetch('/withdraw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, amount, wallet })
+    });
+    const data = await res.json();
+    showAlert(withdrawAlert, data.message, data.success);
+    fetchUserData();
+    e.target.reset();
+  } catch (err) {
+    showAlert(withdrawAlert, 'Error requesting withdrawal', false);
+  }
+});
 
 // ==========================
 // Support - Send Message
