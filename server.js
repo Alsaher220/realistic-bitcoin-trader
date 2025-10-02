@@ -171,7 +171,7 @@ app.post('/withdraw', asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Withdrawal requested!' });
 }));
 
-// ------------------- SUPPORT ROUTES -------------------
+// ------------------- SUPPORT CHAT ROUTES -------------------
 
 // User sends message
 app.post('/support/message', asyncHandler(async (req, res) => {
@@ -186,7 +186,7 @@ app.post('/support/message', asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Support message sent!' });
 }));
 
-// Admin views messages for a specific user
+// Admin fetch messages of a user
 app.get('/admin/support/messages/:userId', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const result = await pool.query(
@@ -196,7 +196,7 @@ app.get('/admin/support/messages/:userId', verifyAdmin, asyncHandler(async (req,
   res.json({ success: true, messages: result.rows });
 }));
 
-// Admin sends message to a user
+// Admin sends reply to user
 app.post('/admin/support/send', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId, message } = req.body;
   if (!userId || !message) return res.json({ success: false, message: 'User ID and message required' });
