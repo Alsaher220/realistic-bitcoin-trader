@@ -227,11 +227,43 @@ function escapeHtml(unsafe) {
 }
 
 // ==========================
+// Fetch Top-Ups
+// ==========================
+async function fetchTopups() {
+  try {
+    const res = await fetch('/admin/topups', { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    
+    if (!topupTableBody) return;
+    
+    topupTableBody.innerHTML = '';
+
+    if (data.success && Array.isArray(data.topups) && data.topups.length) {
+      data.topups.forEach(topup => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${topup.id}</td>
+          <td>${topup.username}</td>
+          <td>$${Number(topup.amount).toFixed(2)}</td>
+          <td>${new Date(topup.date).toLocaleString()}</td>
+        `;
+        topupTableBody.appendChild(row);
+      });
+    } else {
+      topupTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No top-ups found</td></tr>`;
+    }
+  } catch (err) {
+    console.error('Error fetching topups:', err);
+  }
+}
+
+// ==========================
 // Initial Fetches
 // ==========================
 async function refreshAll() {
   await fetchUsers();
-  // Add other fetch functions for trades, withdrawals, investments, topups if needed
+  await fetchTopups();
+  // Add other fetch functions for trades, withdrawals, investments if needed
 }
 refreshAll();
 setInterval(refreshAll, 5000);
