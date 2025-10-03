@@ -26,6 +26,21 @@ pool.connect()
 // ------------------- DATABASE SETUP & SEED -------------------
 (async () => {
   try {
+    console.log("Starting database setup...");
+    
+    // Check if users table exists first
+    const usersCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'users'
+      );
+    `);
+    
+    if (!usersCheck.rows[0].exists) {
+      console.log("WARNING: Users table doesn't exist yet. Please run your SQL setup file first.");
+      return;
+    }
+    
     // Create support_messages table if it doesn't exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS support_messages (
@@ -38,20 +53,26 @@ pool.connect()
     `);
     console.log("Support messages table ensured.");
 
-    // Fix existing users
-    await pool.query(`
-      UPDATE users
-      SET preferred_name = username
-      WHERE preferred_name IS NULL
-    `);
-    await pool.query(`
-      UPDATE users
-      SET cash = 50
-      WHERE cash IS NULL OR cash < 50
-    `);
-    console.log("Existing users fixed: preferred_name and cash ensured.");
+    // Fix existing users (only if users exist)
+    const userCount = await pool.query('SELECT COUNT(*) FROM users');
+    if (parseInt(userCount.rows[0].count) > 0) {
+      await pool.query(`
+        UPDATE users
+        SET preferred_name = username
+        WHERE preferred_name IS NULL
+      `);
+      
+      await pool.query(`
+        UPDATE users
+        SET cash = 50
+        WHERE cash IS NULL OR cash < 50
+      `);
+      console.log("Existing users fixed: preferred_name and cash ensured.");
+    }
+    
   } catch (err) {
-    console.error("Error setting up database:", err.stack);
+    console.error("DATABASE SETUP ERROR:", err.message);
+    console.error("Stack:", err.stack);
   }
 })();
 
