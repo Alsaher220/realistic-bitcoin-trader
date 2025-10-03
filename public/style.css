@@ -1,8 +1,3 @@
-I found the problem! Your `style.css` has the blur fix commented at the bottom, but it’s not being applied to the **modal** and **support chat** elements properly.
-
-Here’s your complete fixed `style.css`:
-
-```css
 /* =======================
    TradeSphere Original Style
 ========================== */
@@ -258,14 +253,3 @@ p, div, span, h1, h2, h3, h4, h5, h6 {
     color: #FFD700;
     margin-bottom: 15px;
 }
-```
-
-**Key changes:**
-
-1. Added `textarea` styling (it was missing)
-1. Expanded the blur fix to ALL modal elements with `*` selectors
-1. Added specific fixes for `.modal-content`, `#aboutModal`, and `#supportMessages`
-1. Set modal background to dark with clear text
-1. Made sure all text inside modals is visible white (#f0f0f0)
-
-**Now commit this to GitHub and deploy.** The text should be crystal clear after this update!​​​​​​​​​​​​​​​​
