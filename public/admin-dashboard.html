@@ -50,6 +50,17 @@
       color: #fff;
       cursor: pointer;
     }
+    .delete-btn {
+      background-color: #dc3545;
+      color: white;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background-color: #c82333;
+    }
   </style>
 </head>
 <body>
@@ -73,21 +84,7 @@
           <th>Top Up</th>
           <th>Reduce</th>
           <th>Chat</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <!-- Trades Section -->
-    <h2>Trades</h2>
-    <table id="tradesTable" border="1">
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Date</th>
-          <th>Type</th>
-          <th>Amount</th>
-          <th>Price</th>
+          <th>Delete</th>
         </tr>
       </thead>
       <tbody></tbody>
