@@ -1,4 +1,4 @@
-<!-- /public/dashboard.html -->
+<!-- /public/user-dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,41 +17,84 @@
       width: 100%;
       height: 100%;
       overflow: auto;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.85);
     }
     .modal-content {
-      background: #fff;
+      background: #1b1b1b;
       margin: 10% auto;
-      padding: 20px;
+      padding: 30px;
       border-radius: 8px;
       width: 90%;
       max-width: 600px;
       box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      color: #f0f0f0;
+    }
+    .modal-content h2 {
+      color: #FFD700;
+      margin-bottom: 15px;
+    }
+    .modal-content p {
+      color: #f0f0f0;
+      font-size: 16px;
+      line-height: 1.8;
     }
     .close {
       float: right;
       font-size: 24px;
       font-weight: bold;
       cursor: pointer;
-      color: #333;
+      color: #FFD700;
     }
     .close:hover { color: red; }
+    
     .messages-box {
       max-height: 250px;
       overflow-y: auto;
-      border: 1px solid #ddd;
+      border: 1px solid #444;
       padding: 10px;
       margin-bottom: 10px;
-      display: none; /* Hidden initially */
+      display: none;
+      background-color: #2c2c2c;
     }
+    
+    .messages-box div {
+      background: #1b1b1b;
+      color: #f0f0f0;
+      padding: 8px;
+      margin-bottom: 8px;
+      border-radius: 5px;
+    }
+    
+    /* Loading Spinner */
+    .spinner {
+      border: 3px solid #333;
+      border-top: 3px solid #FFD700;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-container {
+      text-align: center;
+      color: #aaa;
+      padding: 20px;
+    }
+    
     .alert {
       padding: 10px;
       margin-top: 5px;
       display: none;
       border-radius: 5px;
     }
-    .alert.success { background-color: #d4edda; color: #155724; }
-    .alert.error { background-color: #f8d7da; color: #721c24; }
+    .alert.success { background-color: #28a745; color: #fff; }
+    .alert.error { background-color: #dc3545; color: #fff; }
   </style>
 </head>
 <body>
@@ -139,7 +182,7 @@
         Over the years, we have built a reputation for innovation, transparency, and client satisfaction. Our mission is simple: to empower every investor, regardless of experience level, 
         with the tools and support they need to succeed.  
 
-        From seamless Bitcoin investments to professional support services, TradeSphere ensures every client’s funds are handled with the highest standards of security.  
+        From seamless Bitcoin investments to professional support services, TradeSphere ensures every client's funds are handled with the highest standards of security.  
         Our advanced systems are built to protect assets while offering a smooth and professional trading experience.  
 
         Today, thousands of investors trust us for their financial growth. We remain committed to staying ahead of the market, 
@@ -179,6 +222,10 @@
       el.style.display = 'block';
       setTimeout(() => (el.style.display = 'none'), 3000);
     }
+    
+    function showLoadingSpinner(container) {
+      container.innerHTML = '<div class="loading-container"><div class="spinner"></div><p>Loading...</p></div>';
+    }
 
     async function fetchUserData() {
       try {
@@ -204,11 +251,11 @@
     }
 
     function renderWithdrawals(withdrawals = []) {
-      withdrawalsTable.innerHTML = '';
       if (withdrawals.length === 0) {
         withdrawalsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No withdrawals yet</td></tr>`;
         return;
       }
+      withdrawalsTable.innerHTML = '';
       withdrawals.forEach(w => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -222,11 +269,11 @@
     }
 
     function renderInvestments(investments = []) {
-      investmentsTable.innerHTML = '';
       if (investments.length === 0) {
         investmentsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No investments yet</td></tr>`;
         return;
       }
+      investmentsTable.innerHTML = '';
       investments.forEach(inv => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -241,15 +288,16 @@
 
     function renderSupportMessages(messages = []) {
       if (!supportMessagesBox) return;
-      supportMessagesBox.innerHTML = '';
+      
       if (messages.length === 0) {
-        supportMessagesBox.innerHTML = `<p style="text-align:center;color:#666;">No messages yet.</p>`;
+        supportMessagesBox.innerHTML = `<p style="text-align:center;color:#aaa;">No messages yet.</p>`;
+        supportMessagesBox._currentMessages = [];
         return;
       }
+      
+      supportMessagesBox.innerHTML = '';
       messages.forEach(msg => {
         const div = document.createElement('div');
-        div.style.borderBottom = '1px solid #ddd';
-        div.style.padding = '5px 0';
         const senderLabel = msg.sender === 'user' ? 'You' : 'Support';
         div.innerHTML = `<strong>${senderLabel}:</strong> ${msg.message || msg.text || ''}<br>
         <small style="color:#888;">${new Date(msg.created_at || msg.date || Date.now()).toLocaleString()}</small>`;
@@ -271,8 +319,10 @@
         });
         const data = await res.json();
         showAlert(withdrawAlert, data.message, data.success);
-        fetchUserData();
-        e.target.reset();
+        if (data.success) {
+          fetchUserData();
+          e.target.reset();
+        }
       } catch (err) {
         showAlert(withdrawAlert, 'Error requesting withdrawal', false);
       }
@@ -290,7 +340,7 @@
         });
         const data = await res.json();
         if (data.success) {
-          showAlert(supportAlert, data.message || 'Message sent to support!', true);
+          showAlert(supportAlert, 'Message sent to support!', true);
           const newMsg = { sender: 'user', message, created_at: Date.now() };
           const updatedMessages = [...(supportMessagesBox._currentMessages || []), newMsg];
           renderSupportMessages(updatedMessages);
@@ -307,6 +357,10 @@
     openSupportBtn?.addEventListener('click', () => {
       if (supportMessagesBox.style.display === 'none' || supportMessagesBox.style.display === '') {
         supportMessagesBox.style.display = 'block';
+        if (supportMessagesBox.innerHTML === '') {
+          showLoadingSpinner(supportMessagesBox);
+          setTimeout(() => fetchUserData(), 500);
+        }
       } else {
         supportMessagesBox.style.display = 'none';
       }
