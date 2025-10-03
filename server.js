@@ -306,6 +306,22 @@ app.post('/admin/reduce', verifyAdmin, asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Reduce successful!' });
 }));
 
+// Admin: delete user
+app.post('/admin/delete-user', verifyAdmin, asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, message: 'User ID is required' });
+
+  const userRes = await pool.query('SELECT username, role FROM users WHERE id=$1', [userId]);
+  const user = userRes.rows[0];
+  if (!user) return res.json({ success: false, message: 'User not found' });
+
+  if (user.role === 'admin') return res.json({ success: false, message: 'Cannot delete admin users' });
+
+  await pool.query('DELETE FROM users WHERE id=$1', [userId]);
+
+  res.json({ success: true, message: `User "${user.username}" deleted successfully` });
+}));
+
 app.get('/admin/withdrawals', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
     SELECT w.id, w.amount, w.wallet, w.status, w.date, u.username
