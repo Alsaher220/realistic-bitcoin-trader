@@ -40,6 +40,26 @@ pool.connect()
       return;
     }
     
+    // Add profile_picture column if doesn't exist
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT;
+    `);
+    
+    // Add security questions columns if don't exist
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_question_1 TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_1 TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_question_2 TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_2 TEXT;
+    `);
+    console.log("Profile picture and security questions columns ensured.");
+    
     await pool.query(`
       CREATE TABLE IF NOT EXISTS support_messages (
         id SERIAL PRIMARY KEY,
@@ -75,7 +95,7 @@ pool.connect()
 
 // ------------------- MIDDLEWARE -------------------
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 // ------------------- VERIFY ADMIN -------------------
@@ -99,17 +119,23 @@ const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next
 app.get('/', (req, res) => res.send('TradeSphere Server is running!'));
 
 app.post('/register', asyncHandler(async (req, res) => {
-  const { username, password, preferredName } = req.body;
+  const { username, password, preferredName, securityQuestion1, securityAnswer1, securityQuestion2, securityAnswer2 } = req.body;
   if (!username || !password) return res.json({ success: false, message: 'All fields required' });
+  
+  if (!securityQuestion1 || !securityAnswer1 || !securityQuestion2 || !securityAnswer2) {
+    return res.json({ success: false, message: 'Security questions required' });
+  }
 
   const hashed = await bcrypt.hash(password, 10);
+  const hashedAnswer1 = await bcrypt.hash(securityAnswer1.toLowerCase().trim(), 10);
+  const hashedAnswer2 = await bcrypt.hash(securityAnswer2.toLowerCase().trim(), 10);
   const defaultCash = 50;
   const defaultBTC = 0;
 
   try {
     const result = await pool.query(
-      'INSERT INTO users (username, preferred_name, password, cash, btc, role) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, username, preferred_name, cash, btc, role',
-      [username, preferredName || username, hashed, defaultCash, defaultBTC, 'user']
+      'INSERT INTO users (username, preferred_name, password, cash, btc, role, security_question_1, security_answer_1, security_question_2, security_answer_2) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, username, preferred_name, cash, btc, role',
+      [username, preferredName || username, hashed, defaultCash, defaultBTC, 'user', securityQuestion1, hashedAnswer1, securityQuestion2, hashedAnswer2]
     );
     res.json({ success: true, message: 'User registered!', user: result.rows[0] });
   } catch (err) {
@@ -125,7 +151,7 @@ app.post('/register', asyncHandler(async (req, res) => {
 app.post('/login', asyncHandler(async (req, res) => {
   const { username, password } = req.body;
   const result = await pool.query(
-    'SELECT id, username, preferred_name, password, cash, btc, role FROM users WHERE username=$1',
+    'SELECT id, username, preferred_name, password, cash, btc, role, profile_picture FROM users WHERE username=$1',
     [username]
   );
   const user = result.rows[0];
@@ -143,7 +169,8 @@ app.post('/login', asyncHandler(async (req, res) => {
       preferredName: user.preferred_name,
       cash: user.cash,
       btc: user.btc,
-      role: user.role
+      role: user.role,
+      profilePicture: user.profile_picture
     }
   });
 }));
@@ -151,7 +178,7 @@ app.post('/login', asyncHandler(async (req, res) => {
 app.get('/user/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userRes = await pool.query(
-    'SELECT id, username, preferred_name, cash, btc FROM users WHERE id=$1',
+    'SELECT id, username, preferred_name, cash, btc, profile_picture FROM users WHERE id=$1',
     [id]
   );
   const user = userRes.rows[0];
@@ -179,6 +206,74 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
     investments: investmentsRes.rows,
     supportMessages: supportRes.rows
   });
+}));
+
+// Upload profile picture
+app.post('/user/upload-picture', asyncHandler(async (req, res) => {
+  const { userId, imageData } = req.body;
+  if (!userId || !imageData) return res.json({ success: false, message: 'Missing data' });
+
+  if (!imageData.startsWith('data:image/')) {
+    return res.json({ success: false, message: 'Invalid image format' });
+  }
+
+  if (imageData.length > 2 * 1024 * 1024) {
+    return res.json({ success: false, message: 'Image too large. Max 2MB.' });
+  }
+
+  await pool.query('UPDATE users SET profile_picture=$1 WHERE id=$2', [imageData, userId]);
+  res.json({ success: true, message: 'Profile picture updated!' });
+}));
+
+// Get security questions for password reset
+app.post('/forgot-password/questions', asyncHandler(async (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.json({ success: false, message: 'Username required' });
+
+  const result = await pool.query(
+    'SELECT id, security_question_1, security_question_2 FROM users WHERE username=$1',
+    [username]
+  );
+  const user = result.rows[0];
+  
+  if (!user) return res.json({ success: false, message: 'User not found' });
+  if (!user.security_question_1 || !user.security_question_2) {
+    return res.json({ success: false, message: 'Security questions not set for this account' });
+  }
+
+  res.json({
+    success: true,
+    userId: user.id,
+    question1: user.security_question_1,
+    question2: user.security_question_2
+  });
+}));
+
+// Verify security answers and reset password
+app.post('/forgot-password/reset', asyncHandler(async (req, res) => {
+  const { userId, answer1, answer2, newPassword } = req.body;
+  if (!userId || !answer1 || !answer2 || !newPassword) {
+    return res.json({ success: false, message: 'All fields required' });
+  }
+
+  const result = await pool.query(
+    'SELECT security_answer_1, security_answer_2 FROM users WHERE id=$1',
+    [userId]
+  );
+  const user = result.rows[0];
+  if (!user) return res.json({ success: false, message: 'User not found' });
+
+  const match1 = await bcrypt.compare(answer1.toLowerCase().trim(), user.security_answer_1);
+  const match2 = await bcrypt.compare(answer2.toLowerCase().trim(), user.security_answer_2);
+
+  if (!match1 || !match2) {
+    return res.json({ success: false, message: 'Security answers incorrect' });
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await pool.query('UPDATE users SET password=$1 WHERE id=$2', [hashedPassword, userId]);
+
+  res.json({ success: true, message: 'Password reset successful!' });
 }));
 
 app.post('/withdraw', asyncHandler(async (req, res) => {
@@ -306,7 +401,6 @@ app.post('/admin/reduce', verifyAdmin, asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Reduce successful!' });
 }));
 
-// Admin: delete user
 app.post('/admin/delete-user', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.json({ success: false, message: 'User ID is required' });
