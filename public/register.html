@@ -13,7 +13,7 @@
       padding: 30px;
       border-radius: 15px;
       box-shadow: 0 0 20px rgba(0,0,0,0.7);
-      max-width: 400px;
+      max-width: 450px;
       margin: auto;
     }
 
@@ -28,7 +28,7 @@
       border-radius: 5px;
       margin-bottom: 15px;
       font-weight: bold;
-      display: none; /* hidden by default */
+      display: none;
     }
 
     .alert.success {
@@ -38,6 +38,40 @@
 
     .alert.error {
       background-color: #dc3545;
+      color: #fff;
+    }
+
+    .security-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #FFD700;
+    }
+
+    .security-section h3 {
+      color: #FFD700;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+
+    .security-section small {
+      color: #aaa;
+      display: block;
+      margin-bottom: 15px;
+    }
+
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: none;
+      background-color: #2c2c2c;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    select option {
+      background-color: #2c2c2c;
       color: #fff;
     }
   </style>
@@ -59,6 +93,37 @@
         <label for="password">Password</label>
         <input type="password" id="password" name="password" placeholder="Enter password" required autocomplete="new-password">
 
+        <div class="security-section">
+          <h3>Security Questions</h3>
+          <small>These will help you recover your account if you forget your password</small>
+
+          <label for="securityQuestion1">Security Question 1</label>
+          <select id="securityQuestion1" name="securityQuestion1" required>
+            <option value="">-- Select a question --</option>
+            <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+            <option value="What city were you born in?">What city were you born in?</option>
+            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+            <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+            <option value="What is the name of your favorite teacher?">What is the name of your favorite teacher?</option>
+          </select>
+
+          <label for="securityAnswer1">Answer</label>
+          <input type="text" id="securityAnswer1" name="securityAnswer1" placeholder="Your answer" required>
+
+          <label for="securityQuestion2">Security Question 2</label>
+          <select id="securityQuestion2" name="securityQuestion2" required>
+            <option value="">-- Select a question --</option>
+            <option value="What is your favorite food?">What is your favorite food?</option>
+            <option value="What was the make of your first car?">What was the make of your first car?</option>
+            <option value="What is your favorite movie?">What is your favorite movie?</option>
+            <option value="What street did you grow up on?">What street did you grow up on?</option>
+            <option value="What is your favorite sports team?">What is your favorite sports team?</option>
+          </select>
+
+          <label for="securityAnswer2">Answer</label>
+          <input type="text" id="securityAnswer2" name="securityAnswer2" placeholder="Your answer" required>
+        </div>
+
         <button type="submit">Register</button>
       </form>
       <p style="text-align:center;">Already have an account? <a href="index.html" style="color:#1E90FF;">Login here</a></p>
@@ -77,9 +142,20 @@
       e.preventDefault();
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
+      const securityQuestion1 = document.getElementById('securityQuestion1').value;
+      const securityAnswer1 = document.getElementById('securityAnswer1').value.trim();
+      const securityQuestion2 = document.getElementById('securityQuestion2').value;
+      const securityAnswer2 = document.getElementById('securityAnswer2').value.trim();
 
-      if(!username || !password) {
-        alertBox.textContent = "Please fill in all fields.";
+      if(!username || !password || !securityQuestion1 || !securityAnswer1 || !securityQuestion2 || !securityAnswer2) {
+        alertBox.textContent = "Please fill in all fields including security questions.";
+        alertBox.className = "alert error";
+        alertBox.style.display = "block";
+        return;
+      }
+
+      if(securityQuestion1 === securityQuestion2) {
+        alertBox.textContent = "Please choose two different security questions.";
         alertBox.className = "alert error";
         alertBox.style.display = "block";
         return;
@@ -89,7 +165,14 @@
         const res = await fetch('/register', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ 
+            username, 
+            password,
+            securityQuestion1,
+            securityAnswer1,
+            securityQuestion2,
+            securityAnswer2
+          })
         });
 
         const data = await res.json();
@@ -98,9 +181,7 @@
         alertBox.style.display = "block";
 
         if(data.success) {
-          // ✅ Save userId for dashboard.js right after registration
           localStorage.setItem('userId', data.user.id);
-
           setTimeout(() => {
             window.location.href = '/dashboard';
           }, 1500);
