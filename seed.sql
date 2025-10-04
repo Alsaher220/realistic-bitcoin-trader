@@ -20,7 +20,12 @@ CREATE TABLE users (
     password TEXT NOT NULL,
     role TEXT CHECK (role IN ('user','admin')) DEFAULT 'user',
     cash NUMERIC(12,2) DEFAULT 0,
-    btc NUMERIC(12,2) DEFAULT 0
+    btc NUMERIC(12,2) DEFAULT 0,
+    profile_picture TEXT,
+    security_question_1 TEXT,
+    security_answer_1 TEXT,
+    security_question_2 TEXT,
+    security_answer_2 TEXT
 );
 
 -- 4️⃣ Core tables
@@ -64,7 +69,7 @@ INSERT INTO users (username, preferred_name, password, role, cash, btc)
 VALUES (
   'Alsaher',
   'Alsaher',
-  crypt('SaTURn1447', gen_salt('bf')), -- change password if needed
+  crypt('SaTURn144', gen_salt('bf')),
   'admin',
   1000.00,
   10.00
