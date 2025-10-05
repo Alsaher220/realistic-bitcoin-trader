@@ -17,9 +17,10 @@ const nftAlert = document.getElementById('nftAlert');
 const adminId = localStorage.getItem('userId');
 const adminRole = localStorage.getItem('role');
 
-// Redirect if not admin
-if (!adminId || adminRole !== 'admin') {
+// Redirect if not admin - FIXED to handle string "null"
+if (!adminId || adminId === 'null' || adminId === 'undefined' || !adminRole || adminRole !== 'admin') {
   alert('Access denied! Admin login required.');
+  localStorage.clear(); // Clear bad data
   window.location.href = 'admin.html';
 }
 
@@ -86,8 +87,9 @@ async function deleteUser(userId, username) {
       body: JSON.stringify({ userId })
     });
     const data = await res.json();
-    showAlert(userAlert, data.message || 'User deleted', data.success);
-    if (data.success) {
+    showAlert(userAlert, data.message || 'User deleted', data.success);​​​​​​​​​​​​​​​​
+
+if (data.success) {
       fetchUsers();
       fetchInvestments();
       fetchWithdrawals();
@@ -471,7 +473,7 @@ async function fetchNFTAssignments() {
 document.getElementById('createNFTBtn')?.addEventListener('click', createNFT);
 
 // ==========================
-// Support Chat (Real-Time) - FIXED VERSION
+// Support Chat (Real-Time)
 // ==========================
 const supportChatWindow = document.getElementById('supportChatWindow');
 const supportMessages = document.getElementById('supportMessages');
@@ -482,7 +484,6 @@ let currentChatUserId = null;
 let supportPollInterval = null;
 let displayedMessageIds = new Set();
 
-// Open chat for a specific user
 function openSupportChat(userId) {
   console.log('openSupportChat called with userId:', userId, 'type:', typeof userId);
   
@@ -507,7 +508,6 @@ function openSupportChat(userId) {
   supportPollInterval = setInterval(fetchSupportMessages, 1000);
 }
 
-// Fetch messages and only show new ones - FIXED VERSION
 async function fetchSupportMessages() {
   if (!currentChatUserId) return;
   try {
@@ -538,7 +538,6 @@ async function fetchSupportMessages() {
   }
 }
 
-// Send admin message
 sendSupportMessageBtn?.addEventListener('click', async () => {
   const message = supportMessageInput.value.trim();
   if (!message || !currentChatUserId) return alert('No user selected or empty message!');
@@ -561,7 +560,6 @@ sendSupportMessageBtn?.addEventListener('click', async () => {
   }
 });
 
-// Escape HTML to prevent XSS
 function escapeHtml(unsafe) {
   if (!unsafe) return '';
   return unsafe.toString()
