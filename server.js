@@ -71,6 +71,30 @@ pool.connect()
     `);
     console.log("Support messages table ensured.");
 
+    // Create NFT tables if they don't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS nfts (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        image_url TEXT NOT NULL,
+        collection_name TEXT,
+        blockchain TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS nft_assignments (
+        id SERIAL PRIMARY KEY,
+        nft_id INTEGER NOT NULL REFERENCES nfts(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        assigned_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(nft_id, user_id)
+      )
+    `);
+    console.log("NFT tables ensured.");
+
     const userCount = await pool.query('SELECT COUNT(*) FROM users');
     if (parseInt(userCount.rows[0].count) > 0) {
       await pool.query(`
@@ -199,12 +223,22 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
     [id]
   );
 
+  // Get user's NFTs
+  const nftsRes = await pool.query(`
+    SELECT n.id, n.title, n.description, n.image_url, n.collection_name, n.blockchain, na.assigned_at
+    FROM nfts n
+    JOIN nft_assignments na ON n.id = na.nft_id
+    WHERE na.user_id = $1
+    ORDER BY na.assigned_at DESC
+  `, [id]);
+
   res.json({
     success: true,
     user,
     withdrawals: withdrawalsRes.rows,
     investments: investmentsRes.rows,
-    supportMessages: supportRes.rows
+    supportMessages: supportRes.rows,
+    nfts: nftsRes.rows
   });
 }));
 
@@ -302,6 +336,116 @@ app.post('/support/message', asyncHandler(async (req, res) => {
 
   res.json({ success: true, message: 'Support message sent!' });
 }));
+
+// ------------------- NFT ENDPOINTS -------------------
+
+// Admin: Get all NFTs
+app.get('/admin/nfts', verifyAdmin, asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT id, title, description, image_url, collection_name, blockchain, created_at
+    FROM nfts
+    ORDER BY created_at DESC
+  `);
+  res.json({ success: true, nfts: result.rows });
+}));
+
+// Admin: Create new NFT
+app.post('/admin/nfts/create', verifyAdmin, asyncHandler(async (req, res) => {
+  const { title, description, imageUrl, collectionName, blockchain } = req.body;
+  
+  if (!title || !imageUrl) {
+    return res.json({ success: false, message: 'Title and image URL are required' });
+  }
+
+  const result = await pool.query(
+    'INSERT INTO nfts (title, description, image_url, collection_name, blockchain, created_at) VALUES ($1,$2,$3,$4,$5,NOW()) RETURNING *',
+    [title, description || '', imageUrl, collectionName || '', blockchain || '']
+  );
+
+  res.json({ success: true, message: 'NFT created successfully!', nft: result.rows[0] });
+}));
+
+// Admin: Delete NFT
+app.post('/admin/nfts/delete', verifyAdmin, asyncHandler(async (req, res) => {
+  const { nftId } = req.body;
+  
+  if (!nftId) return res.json({ success: false, message: 'NFT ID required' });
+
+  // This will also delete all assignments due to CASCADE
+  await pool.query('DELETE FROM nfts WHERE id=$1', [nftId]);
+
+  res.json({ success: true, message: 'NFT deleted successfully!' });
+}));
+
+// Admin: Assign NFT to user
+app.post('/admin/nfts/assign', verifyAdmin, asyncHandler(async (req, res) => {
+  const { nftId, userId } = req.body;
+  
+  if (!nftId || !userId) {
+    return res.json({ success: false, message: 'NFT ID and User ID required' });
+  }
+
+  try {
+    await pool.query(
+      'INSERT INTO nft_assignments (nft_id, user_id, assigned_at) VALUES ($1,$2,NOW())',
+      [nftId, userId]
+    );
+    res.json({ success: true, message: 'NFT assigned to user!' });
+  } catch (err) {
+    if (err.code === '23505') {
+      res.json({ success: false, message: 'NFT already assigned to this user' });
+    } else {
+      throw err;
+    }
+  }
+}));
+
+// Admin: Remove NFT from user
+app.post('/admin/nfts/unassign', verifyAdmin, asyncHandler(async (req, res) => {
+  const { nftId, userId } = req.body;
+  
+  if (!nftId || !userId) {
+    return res.json({ success: false, message: 'NFT ID and User ID required' });
+  }
+
+  await pool.query(
+    'DELETE FROM nft_assignments WHERE nft_id=$1 AND user_id=$2',
+    [nftId, userId]
+  );
+
+  res.json({ success: true, message: 'NFT removed from user!' });
+}));
+
+// Admin: Get all NFT assignments
+app.get('/admin/nfts/assignments', verifyAdmin, asyncHandler(async (req, res) => {
+  const result = await pool.query(`
+    SELECT na.id, na.nft_id, na.user_id, na.assigned_at,
+           n.title as nft_title, n.image_url,
+           u.username
+    FROM nft_assignments na
+    JOIN nfts n ON na.nft_id = n.id
+    JOIN users u ON na.user_id = u.id
+    ORDER BY na.assigned_at DESC
+  `);
+  res.json({ success: true, assignments: result.rows });
+}));
+
+// Admin: Get user's NFTs (for assignment management)
+app.get('/admin/users/:userId/nfts', verifyAdmin, asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  
+  const result = await pool.query(`
+    SELECT n.id, n.title, n.description, n.image_url, n.collection_name, n.blockchain, na.assigned_at
+    FROM nfts n
+    JOIN nft_assignments na ON n.id = na.nft_id
+    WHERE na.user_id = $1
+    ORDER BY na.assigned_at DESC
+  `, [userId]);
+
+  res.json({ success: true, nfts: result.rows });
+}));
+
+// ------------------- END NFT ENDPOINTS -------------------
 
 app.get('/admin/support', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
