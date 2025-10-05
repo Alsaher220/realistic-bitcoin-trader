@@ -40,24 +40,11 @@ pool.connect()
       return;
     }
     
-    // Add profile_picture column if doesn't exist
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT;
-    `);
-    
-    // Add security questions columns if don't exist
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_question_1 TEXT;
-    `);
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_1 TEXT;
-    `);
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_question_2 TEXT;
-    `);
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_2 TEXT;
-    `);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS security_question_1 TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_1 TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS security_question_2 TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer_2 TEXT;`);
     console.log("Profile picture and security questions columns ensured.");
     
     await pool.query(`
@@ -71,7 +58,6 @@ pool.connect()
     `);
     console.log("Support messages table ensured.");
 
-    // Create NFT tables if they don't exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS nfts (
         id SERIAL PRIMARY KEY,
@@ -97,17 +83,8 @@ pool.connect()
 
     const userCount = await pool.query('SELECT COUNT(*) FROM users');
     if (parseInt(userCount.rows[0].count) > 0) {
-      await pool.query(`
-        UPDATE users
-        SET preferred_name = username
-        WHERE preferred_name IS NULL
-      `);
-      
-      await pool.query(`
-        UPDATE users
-        SET cash = 50
-        WHERE cash IS NULL OR cash < 50
-      `);
+      await pool.query(`UPDATE users SET preferred_name = username WHERE preferred_name IS NULL`);
+      await pool.query(`UPDATE users SET cash = 50 WHERE cash IS NULL OR cash < 50`);
       console.log("Existing users fixed: preferred_name and cash ensured.");
     }
     
@@ -126,7 +103,6 @@ app.use(express.static('public'));
 function verifyAdmin(req, res, next) {
   const userId = req.headers['x-user-id'];
   
-  // Check if userId is missing, null, undefined, or the string "null"
   if (!userId || userId === 'null' || userId === 'undefined') {
     return res.status(401).json({ success: false, message: 'Unauthorized: No valid user ID' });
   }
@@ -227,7 +203,6 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
     [id]
   );
 
-  // Get user's NFTs
   const nftsRes = await pool.query(`
     SELECT n.id, n.title, n.description, n.image_url, n.collection_name, n.blockchain, na.assigned_at
     FROM nfts n
@@ -246,7 +221,6 @@ app.get('/user/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// Upload profile picture
 app.post('/user/upload-picture', asyncHandler(async (req, res) => {
   const { userId, imageData } = req.body;
   if (!userId || !imageData) return res.json({ success: false, message: 'Missing data' });
@@ -263,7 +237,6 @@ app.post('/user/upload-picture', asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Profile picture updated!' });
 }));
 
-// Get security questions for password reset
 app.post('/forgot-password/questions', asyncHandler(async (req, res) => {
   const { username } = req.body;
   if (!username) return res.json({ success: false, message: 'Username required' });
@@ -287,7 +260,6 @@ app.post('/forgot-password/questions', asyncHandler(async (req, res) => {
   });
 }));
 
-// Verify security answers and reset password
 app.post('/forgot-password/reset', asyncHandler(async (req, res) => {
   const { userId, answer1, answer2, newPassword } = req.body;
   if (!userId || !answer1 || !answer2 || !newPassword) {
@@ -343,7 +315,6 @@ app.post('/support/message', asyncHandler(async (req, res) => {
 
 // ------------------- NFT ENDPOINTS -------------------
 
-// Admin: Get all NFTs
 app.get('/admin/nfts', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
     SELECT id, title, description, image_url, collection_name, blockchain, created_at
@@ -353,7 +324,6 @@ app.get('/admin/nfts', verifyAdmin, asyncHandler(async (req, res) => {
   res.json({ success: true, nfts: result.rows });
 }));
 
-// Admin: Create new NFT
 app.post('/admin/nfts/create', verifyAdmin, asyncHandler(async (req, res) => {
   const { title, description, imageUrl, collectionName, blockchain } = req.body;
   
@@ -369,19 +339,16 @@ app.post('/admin/nfts/create', verifyAdmin, asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'NFT created successfully!', nft: result.rows[0] });
 }));
 
-// Admin: Delete NFT
 app.post('/admin/nfts/delete', verifyAdmin, asyncHandler(async (req, res) => {
   const { nftId } = req.body;
   
   if (!nftId) return res.json({ success: false, message: 'NFT ID required' });
 
-  // This will also delete all assignments due to CASCADE
   await pool.query('DELETE FROM nfts WHERE id=$1', [nftId]);
 
   res.json({ success: true, message: 'NFT deleted successfully!' });
 }));
 
-// Admin: Assign NFT to user
 app.post('/admin/nfts/assign', verifyAdmin, asyncHandler(async (req, res) => {
   const { nftId, userId } = req.body;
   
@@ -404,7 +371,6 @@ app.post('/admin/nfts/assign', verifyAdmin, asyncHandler(async (req, res) => {
   }
 }));
 
-// Admin: Remove NFT from user
 app.post('/admin/nfts/unassign', verifyAdmin, asyncHandler(async (req, res) => {
   const { nftId, userId } = req.body;
   
@@ -420,7 +386,6 @@ app.post('/admin/nfts/unassign', verifyAdmin, asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'NFT removed from user!' });
 }));
 
-// Admin: Get all NFT assignments
 app.get('/admin/nfts/assignments', verifyAdmin, asyncHandler(async (req, res) => {
   const result = await pool.query(`
     SELECT na.id, na.nft_id, na.user_id, na.assigned_at,
@@ -434,7 +399,6 @@ app.get('/admin/nfts/assignments', verifyAdmin, asyncHandler(async (req, res) =>
   res.json({ success: true, assignments: result.rows });
 }));
 
-// Admin: Get user's NFTs (for assignment management)
 app.get('/admin/users/:userId/nfts', verifyAdmin, asyncHandler(async (req, res) => {
   const { userId } = req.params;
   
