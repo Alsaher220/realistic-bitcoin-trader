@@ -1,15 +1,18 @@
 // ==========================
-// TradeSphere Admin Dashboard JS (Full Version with Real-Time Support Chat)
+// TradeSphere Admin Dashboard JS (Full Version with Real-Time Support Chat + NFT Management)
 // ==========================
 
 const usersTableBody = document.querySelector('#usersTable tbody');
 const withdrawalsTableBody = document.querySelector('#withdrawalsTable tbody');
 const investmentsTableBody = document.querySelector('#investmentsTable tbody');
 const topupTableBody = document.querySelector('#topupTable tbody');
+const nftsTableBody = document.querySelector('#nftsTable tbody');
+const nftAssignmentsTableBody = document.querySelector('#nftAssignmentsTable tbody');
 
 const userAlert = document.getElementById('userAlert');
 const withdrawalAlert = document.getElementById('withdrawalAlert');
 const investmentAlert = document.getElementById('investmentAlert');
+const nftAlert = document.getElementById('nftAlert');
 
 const adminId = localStorage.getItem('userId');
 const adminRole = localStorage.getItem('role');
@@ -55,12 +58,13 @@ async function fetchUsers() {
           <td><button onclick="topUpUser('${userId}')">Top Up</button></td>
           <td><button onclick="reduceUser('${userId}')">Reduce</button></td>
           <td><button onclick="openSupportChat('${userId}')">Chat</button></td>
+          <td><button onclick="manageUserNFTs('${userId}', '${username}')">NFTs</button></td>
           <td><button class="delete-btn" onclick="deleteUser('${userId}', '${username}')">Delete</button></td>
         `;
         usersTableBody.appendChild(row);
       });
     } else {
-      usersTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No users found</td></tr>`;
+      usersTableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No users found</td></tr>`;
     }
   } catch (err) {
     showAlert(userAlert, 'Error fetching users', false);
@@ -269,6 +273,204 @@ async function fetchTopups() {
 }
 
 // ==========================
+// NFT MANAGEMENT FUNCTIONS
+// ==========================
+
+// Fetch all NFTs
+async function fetchNFTs() {
+  try {
+    const res = await fetch('/admin/nfts', { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    
+    if (!nftsTableBody) return;
+    
+    nftsTableBody.innerHTML = '';
+
+    if (data.success && Array.isArray(data.nfts) && data.nfts.length) {
+      data.nfts.forEach(nft => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><img src="${nft.image_url}" alt="${nft.title}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;"></td>
+          <td>${nft.title}</td>
+          <td>${nft.description || '-'}</td>
+          <td>${nft.collection_name || '-'}</td>
+          <td>${nft.blockchain || '-'}</td>
+          <td>${new Date(nft.created_at).toLocaleDateString()}</td>
+          <td>
+            <button onclick="deleteNFT(${nft.id}, '${nft.title}')">Delete</button>
+          </td>
+        `;
+        nftsTableBody.appendChild(row);
+      });
+    } else {
+      nftsTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No NFTs created yet</td></tr>`;
+    }
+  } catch (err) {
+    console.error('Error fetching NFTs:', err);
+  }
+}
+
+// Create new NFT
+async function createNFT() {
+  const title = prompt("Enter NFT Title:");
+  if (!title) return;
+  
+  const description = prompt("Enter NFT Description:");
+  const imageUrl = prompt("Enter Image URL:");
+  if (!imageUrl) return alert("Image URL is required!");
+  
+  const collectionName = prompt("Enter Collection Name (optional):");
+  const blockchain = prompt("Enter Blockchain (optional, e.g., Ethereum, Polygon):");
+
+  try {
+    const res = await fetch('/admin/nfts/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
+      body: JSON.stringify({ title, description, imageUrl, collectionName, blockchain })
+    });
+    const data = await res.json();
+    showAlert(nftAlert, data.message || 'NFT created!', data.success);
+    if (data.success) fetchNFTs();
+  } catch (err) {
+    showAlert(nftAlert, 'Failed to create NFT', false);
+    console.error(err);
+  }
+}
+
+// Delete NFT
+async function deleteNFT(nftId, title) {
+  const confirm = window.confirm(`Delete NFT "${title}"? This will also remove it from all users.`);
+  if (!confirm) return;
+
+  try {
+    const res = await fetch('/admin/nfts/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
+      body: JSON.stringify({ nftId })
+    });
+    const data = await res.json();
+    showAlert(nftAlert, data.message || 'NFT deleted', data.success);
+    if (data.success) {
+      fetchNFTs();
+      fetchNFTAssignments();
+    }
+  } catch (err) {
+    showAlert(nftAlert, 'Delete failed', false);
+    console.error(err);
+  }
+}
+
+// Manage user NFTs (assign/unassign)
+async function manageUserNFTs(userId, username) {
+  const action = prompt(`Manage NFTs for ${username}\nType 'assign' to add NFT or 'remove' to remove NFT:`);
+  
+  if (action === 'assign') {
+    await assignNFTToUser(userId, username);
+  } else if (action === 'remove') {
+    await removeNFTFromUser(userId, username);
+  } else {
+    alert('Invalid action. Use "assign" or "remove"');
+  }
+}
+
+// Assign NFT to user
+async function assignNFTToUser(userId, username) {
+  try {
+    const res = await fetch('/admin/nfts', { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    
+    if (!data.success || !data.nfts.length) {
+      return alert('No NFTs available. Create NFTs first!');
+    }
+
+    let nftList = "Available NFTs:\n";
+    data.nfts.forEach((nft, index) => {
+      nftList += `${index + 1}. ${nft.title} (ID: ${nft.id})\n`;
+    });
+    
+    const nftId = prompt(nftList + "\nEnter NFT ID to assign:");
+    if (!nftId) return;
+
+    const assignRes = await fetch('/admin/nfts/assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
+      body: JSON.stringify({ nftId: Number(nftId), userId })
+    });
+    const assignData = await assignRes.json();
+    showAlert(nftAlert, assignData.message, assignData.success);
+    if (assignData.success) fetchNFTAssignments();
+  } catch (err) {
+    showAlert(nftAlert, 'Assignment failed', false);
+    console.error(err);
+  }
+}
+
+// Remove NFT from user
+async function removeNFTFromUser(userId, username) {
+  try {
+    const res = await fetch(`/admin/users/${userId}/nfts`, { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    
+    if (!data.success || !data.nfts.length) {
+      return alert(`${username} has no NFTs assigned.`);
+    }
+
+    let nftList = `${username}'s NFTs:\n`;
+    data.nfts.forEach((nft, index) => {
+      nftList += `${index + 1}. ${nft.title} (ID: ${nft.id})\n`;
+    });
+    
+    const nftId = prompt(nftList + "\nEnter NFT ID to remove:");
+    if (!nftId) return;
+
+    const removeRes = await fetch('/admin/nfts/unassign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': adminId },
+      body: JSON.stringify({ nftId: Number(nftId), userId })
+    });
+    const removeData = await removeRes.json();
+    showAlert(nftAlert, removeData.message, removeData.success);
+    if (removeData.success) fetchNFTAssignments();
+  } catch (err) {
+    showAlert(nftAlert, 'Removal failed', false);
+    console.error(err);
+  }
+}
+
+// Fetch NFT assignments
+async function fetchNFTAssignments() {
+  try {
+    const res = await fetch('/admin/nfts/assignments', { headers: { 'x-user-id': adminId } });
+    const data = await res.json();
+    
+    if (!nftAssignmentsTableBody) return;
+    
+    nftAssignmentsTableBody.innerHTML = '';
+
+    if (data.success && Array.isArray(data.assignments) && data.assignments.length) {
+      data.assignments.forEach(assignment => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${assignment.username}</td>
+          <td>${assignment.nft_title}</td>
+          <td><img src="${assignment.image_url}" alt="${assignment.nft_title}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;"></td>
+          <td>${new Date(assignment.assigned_at).toLocaleDateString()}</td>
+          <td><button onclick="removeNFTFromUser(${assignment.user_id}, '${assignment.username}')">Remove</button></td>
+        `;
+        nftAssignmentsTableBody.appendChild(row);
+      });
+    } else {
+      nftAssignmentsTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No NFT assignments yet</td></tr>`;
+    }
+  } catch (err) {
+    console.error('Error fetching NFT assignments:', err);
+  }
+}
+
+// Add Create NFT button handler
+document.getElementById('createNFTBtn')?.addEventListener('click', createNFT);
+
+// ==========================
 // Support Chat (Real-Time) - FIXED VERSION
 // ==========================
 const supportChatWindow = document.getElementById('supportChatWindow');
@@ -378,6 +580,8 @@ async function refreshAll() {
   await fetchWithdrawals();
   await fetchInvestments();
   await fetchTopups();
+  await fetchNFTs();
+  await fetchNFTAssignments();
 }
 refreshAll();
 setInterval(refreshAll, 5000);
