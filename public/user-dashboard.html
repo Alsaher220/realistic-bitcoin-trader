@@ -7,7 +7,6 @@
   <title>TradeSphere User Dashboard</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* About Company Modal Styling */
     .modal {
       display: none;
       position: fixed;
@@ -65,7 +64,6 @@
       border-radius: 5px;
     }
     
-    /* Loading Spinner */
     .spinner {
       border: 3px solid #333;
       border-top: 3px solid #FFD700;
@@ -96,7 +94,6 @@
     .alert.success { background-color: #28a745; color: #fff; }
     .alert.error { background-color: #dc3545; color: #fff; }
     
-    /* Profile Picture Styling */
     .profile-section {
       display: flex;
       align-items: center;
@@ -126,6 +123,69 @@
     .upload-btn:hover {
       background-color: #FFC700;
     }
+    
+    /* Bitcoin Live Price Ticker */
+    .btc-ticker {
+      background: linear-gradient(135deg, #1b1b1b 0%, #2c2c2c 100%);
+      border: 2px solid #FFD700;
+      border-radius: 10px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+    .btc-ticker-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .btc-icon {
+      font-size: 2rem;
+    }
+    .btc-info h3 {
+      color: #FFD700;
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    .btc-price {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #fff;
+      margin: 5px 0;
+    }
+    .btc-change {
+      font-size: 0.9rem;
+      padding: 3px 8px;
+      border-radius: 5px;
+    }
+    .btc-change.up {
+      background-color: #28a745;
+      color: #fff;
+    }
+    .btc-change.down {
+      background-color: #dc3545;
+      color: #fff;
+    }
+    .btc-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #28a745;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
   </style>
 </head>
 <body>
@@ -136,6 +196,23 @@
   </header>
 
   <div class="container">
+    
+    <!-- Bitcoin Live Price Ticker -->
+    <div class="btc-ticker">
+      <div class="btc-ticker-left">
+        <div class="btc-icon">₿</div>
+        <div class="btc-info">
+          <h3>Bitcoin (BTC/USDT)</h3>
+          <div class="btc-price" id="btcLivePrice">$--,---</div>
+          <span class="btc-change" id="btcChange">---%</span>
+        </div>
+      </div>
+      <div class="btc-status">
+        <span class="status-dot"></span>
+        <span>Live</span>
+      </div>
+    </div>
+
     <section class="account-info card">
       <h2>Account Info</h2>
       <div class="profile-section">
@@ -217,7 +294,6 @@
     </section>
   </div>
 
-  <!-- About Company Modal -->
   <div id="aboutModal" class="modal">
     <div class="modal-content">
       <span class="close" id="aboutClose">&times;</span>
@@ -262,6 +338,51 @@
     const uploadPictureBtn = document.getElementById('uploadPictureBtn');
 
     const START_CASH = 50;
+    let lastBtcPrice = null;
+
+    // Binance WebSocket for Live Bitcoin Price
+    function connectBinanceWebSocket() {
+      const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
+      
+      ws.onopen = () => {
+        console.log('Binance WebSocket connected');
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const price = parseFloat(data.p);
+        updateBitcoinPrice(price);
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        document.getElementById('btcLivePrice').textContent = 'Connection Error';
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket closed. Reconnecting in 5 seconds...');
+        setTimeout(connectBinanceWebSocket, 5000);
+      };
+    }
+
+    function updateBitcoinPrice(price) {
+      const priceElement = document.getElementById('btcLivePrice');
+      const changeElement = document.getElementById('btcChange');
+      
+      priceElement.textContent = `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      
+      if (lastBtcPrice !== null) {
+        const change = ((price - lastBtcPrice) / lastBtcPrice) * 100;
+        const changeText = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
+        changeElement.textContent = changeText;
+        changeElement.className = `btc-change ${change >= 0 ? 'up' : 'down'}`;
+      }
+      
+      lastBtcPrice = price;
+    }
+
+    // Start WebSocket connection
+    connectBinanceWebSocket();
 
     function showAlert(el, msg, isSuccess = true) {
       if (!el) return;
@@ -290,7 +411,6 @@
         if (isNaN(btc) || btc === null) btc = 0;
         btcSpan.textContent = btc.toFixed(6);
 
-        // Load profile picture if exists
         if (user.profile_picture) {
           profilePicture.src = user.profile_picture;
         }
@@ -360,7 +480,6 @@
       supportMessagesBox._currentMessages = messages;
     }
 
-    // Profile Picture Upload
     uploadPictureBtn?.addEventListener('click', () => {
       profilePictureInput.click();
     });
@@ -484,7 +603,6 @@
       window.location.href = 'index.html';
     });
 
-    // Initial fetch + auto-refresh
     fetchUserData();
     setInterval(fetchUserData, 5000);
   </script>
