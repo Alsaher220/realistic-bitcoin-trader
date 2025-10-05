@@ -126,7 +126,7 @@ AFTER INSERT ON users
 FOR EACH ROW
 EXECUTE FUNCTION create_default_investment();
 
--- 1️⃣1️⃣ Sample NFTs (optional - you can remove this section)
+-- 1️⃣1️⃣ Sample NFTs (optional)
 INSERT INTO nfts (title, description, image_url, collection_name, blockchain)
 VALUES 
   ('Golden Crypto Bull', 'Exclusive NFT representing market dominance', 'https://via.placeholder.com/300x300/FFD700/000000?text=Golden+Bull', 'TradeSphere Elite', 'Ethereum'),
