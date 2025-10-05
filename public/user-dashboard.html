@@ -186,6 +186,62 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
+
+    /* NFT Gallery Styles */
+    .nft-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .nft-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    .nft-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .nft-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+    .nft-card-content {
+      padding: 15px;
+    }
+    .nft-card h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      color: #333;
+    }
+    .nft-card p {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #666;
+      line-height: 1.4;
+    }
+    .nft-meta {
+      font-size: 12px;
+      color: #888;
+      margin: 4px 0;
+    }
+    .nft-date {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 8px;
+    }
+    .nft-empty {
+      text-align: center;
+      color: #666;
+      padding: 40px;
+      grid-column: 1 / -1;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
@@ -231,6 +287,14 @@
           <p>Cash: $<span id="cash">0.00</span></p>
           <p>BTC: <span id="btc">0.000000</span> BTC</p>
         </div>
+      </div>
+    </section>
+
+    <!-- NFT Gallery Section -->
+    <section class="nft-collection card">
+      <h2>🖼️ My NFT Collection</h2>
+      <div id="nftGallery" class="nft-gallery">
+        <div class="nft-empty">Loading your NFTs...</div>
       </div>
     </section>
 
@@ -318,293 +382,6 @@
     &copy; 2020 TradeSphere
   </footer>
 
-  <script>
-    const userId = localStorage.getItem('userId');
-    if (!userId) window.location.href = 'index.html';
-
-    const usernameSpan = document.getElementById('username');
-    const cashSpan = document.getElementById('cash');
-    const btcSpan = document.getElementById('btc');
-    const withdrawalsTable = document.querySelector('#withdrawalsTable tbody');
-    const investmentsTable = document.querySelector('#investmentsTable tbody');
-    const withdrawAlert = document.getElementById('withdrawAlert');
-    const supportAlert = document.getElementById('supportAlert'); 
-    const supportMessagesBox = document.getElementById('supportMessages');
-    const supportForm = document.getElementById('supportForm');
-    const supportMessageInput = document.getElementById('supportMessage');
-    const openSupportBtn = document.getElementById('openSupportBtn');
-    const profilePicture = document.getElementById('profilePicture');
-    const profilePictureInput = document.getElementById('profilePictureInput');
-    const uploadPictureBtn = document.getElementById('uploadPictureBtn');
-
-    const START_CASH = 50;
-    let lastBtcPrice = null;
-
-    // Binance WebSocket for Live Bitcoin Price
-    function connectBinanceWebSocket() {
-      const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
-      
-      ws.onopen = () => {
-        console.log('Binance WebSocket connected');
-      };
-
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        const price = parseFloat(data.p);
-        updateBitcoinPrice(price);
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        document.getElementById('btcLivePrice').textContent = 'Connection Error';
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket closed. Reconnecting in 5 seconds...');
-        setTimeout(connectBinanceWebSocket, 5000);
-      };
-    }
-
-    function updateBitcoinPrice(price) {
-      const priceElement = document.getElementById('btcLivePrice');
-      const changeElement = document.getElementById('btcChange');
-      
-      priceElement.textContent = `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      
-      if (lastBtcPrice !== null) {
-        const change = ((price - lastBtcPrice) / lastBtcPrice) * 100;
-        const changeText = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
-        changeElement.textContent = changeText;
-        changeElement.className = `btc-change ${change >= 0 ? 'up' : 'down'}`;
-      }
-      
-      lastBtcPrice = price;
-    }
-
-    // Start WebSocket connection
-    connectBinanceWebSocket();
-
-    function showAlert(el, msg, isSuccess = true) {
-      if (!el) return;
-      el.textContent = msg;
-      el.className = `alert ${isSuccess ? 'success' : 'error'}`;
-      el.style.display = 'block';
-      setTimeout(() => (el.style.display = 'none'), 3000);
-    }
-    
-    function showLoadingSpinner(container) {
-      container.innerHTML = '<div class="loading-container"><div class="spinner"></div><p>Loading...</p></div>';
-    }
-
-    async function fetchUserData() {
-      try {
-        const res = await fetch(`/user/${userId}`);
-        const data = await res.json();
-        if (!data.success) return;
-
-        const user = data.user;
-        usernameSpan.textContent = user.preferred_name || user.preferredName || user.username || 'Unknown';
-        let cash = parseFloat(user.cash);
-        if (isNaN(cash) || cash === null) cash = START_CASH;
-        cashSpan.textContent = cash.toFixed(2);
-        let btc = parseFloat(user.btc);
-        if (isNaN(btc) || btc === null) btc = 0;
-        btcSpan.textContent = btc.toFixed(6);
-
-        if (user.profile_picture) {
-          profilePicture.src = user.profile_picture;
-        }
-
-        renderWithdrawals(data.withdrawals || []);
-        renderInvestments(data.investments || []);
-        renderSupportMessages(data.supportMessages || []);
-      } catch (err) {
-        console.error('Error fetching user data:', err);
-      }
-    }
-
-    function renderWithdrawals(withdrawals = []) {
-      if (withdrawals.length === 0) {
-        withdrawalsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No withdrawals yet</td></tr>`;
-        return;
-      }
-      withdrawalsTable.innerHTML = '';
-      withdrawals.forEach(w => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${parseFloat(w.amount || 0).toFixed(2)}</td>
-          <td>${w.wallet || '-'}</td>
-          <td>${w.status || 'Pending'}</td>
-          <td>${new Date(w.date || Date.now()).toLocaleString()}</td>
-        `;
-        withdrawalsTable.appendChild(row);
-      });
-    }
-
-    function renderInvestments(investments = []) {
-      if (investments.length === 0) {
-        investmentsTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No investments yet</td></tr>`;
-        return;
-      }
-      investmentsTable.innerHTML = '';
-      investments.forEach(inv => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${inv.plan || '-'}</td>
-          <td>${parseFloat(inv.amount || 0).toFixed(2)}</td>
-          <td>${inv.status || 'Pending'}</td>
-          <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
-        `;
-        investmentsTable.appendChild(row);
-      });
-    }
-
-    function renderSupportMessages(messages = []) {
-      if (!supportMessagesBox) return;
-      
-      if (messages.length === 0) {
-        supportMessagesBox.innerHTML = `<p style="text-align:center;color:#aaa;">No messages yet.</p>`;
-        supportMessagesBox._currentMessages = [];
-        return;
-      }
-      
-      supportMessagesBox.innerHTML = '';
-      messages.forEach(msg => {
-        const div = document.createElement('div');
-        const senderLabel = msg.sender === 'user' ? 'You' : 'Support';
-        div.innerHTML = `<strong>${senderLabel}:</strong> ${msg.message || msg.text || ''}<br>
-        <small style="color:#888;">${new Date(msg.created_at || msg.date || Date.now()).toLocaleString()}</small>`;
-        supportMessagesBox.appendChild(div);
-      });
-      supportMessagesBox.scrollTop = supportMessagesBox.scrollHeight;
-      supportMessagesBox._currentMessages = messages;
-    }
-
-    uploadPictureBtn?.addEventListener('click', () => {
-      profilePictureInput.click();
-    });
-
-    profilePicture?.addEventListener('click', () => {
-      profilePictureInput.click();
-    });
-
-    profilePictureInput?.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Image too large! Maximum size is 2MB.');
-        return;
-      }
-
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file.');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const imageData = event.target.result;
-        
-        try {
-          const res = await fetch('/user/upload-picture', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, imageData })
-          });
-          const data = await res.json();
-          
-          if (data.success) {
-            profilePicture.src = imageData;
-            alert('Profile picture updated successfully!');
-          } else {
-            alert(data.message || 'Failed to upload picture');
-          }
-        } catch (err) {
-          console.error('Upload error:', err);
-          alert('Error uploading picture');
-        }
-      };
-      
-      reader.readAsDataURL(file);
-    });
-
-    document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
-      e.preventDefault();
-      const amount = parseFloat(document.getElementById('withdrawAmount').value);
-      const wallet = document.getElementById('withdrawWallet').value;
-      try {
-        const res = await fetch('/withdraw', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, amount, wallet })
-        });
-        const data = await res.json();
-        showAlert(withdrawAlert, data.message, data.success);
-        if (data.success) {
-          fetchUserData();
-          e.target.reset();
-        }
-      } catch (err) {
-        showAlert(withdrawAlert, 'Error requesting withdrawal', false);
-      }
-    });
-
-    supportForm?.addEventListener('submit', async e => {
-      e.preventDefault();
-      const message = supportMessageInput.value.trim();
-      if (!message) return;
-      try {
-        const res = await fetch('/support/message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, message })
-        });
-        const data = await res.json();
-        if (data.success) {
-          showAlert(supportAlert, 'Message sent to support!', true);
-          const newMsg = { sender: 'user', message, created_at: Date.now() };
-          const updatedMessages = [...(supportMessagesBox._currentMessages || []), newMsg];
-          renderSupportMessages(updatedMessages);
-          supportMessageInput.value = '';
-        } else {
-          showAlert(supportAlert, data.message || 'Failed to send message', false);
-        }
-      } catch (err) {
-        showAlert(supportAlert, 'Error sending support message', false);
-        console.error(err);
-      }
-    });
-
-    openSupportBtn?.addEventListener('click', () => {
-      if (supportMessagesBox.style.display === 'none' || supportMessagesBox.style.display === '') {
-        supportMessagesBox.style.display = 'block';
-        if (supportMessagesBox.innerHTML === '') {
-          showLoadingSpinner(supportMessagesBox);
-          setTimeout(() => fetchUserData(), 500);
-        }
-      } else {
-        supportMessagesBox.style.display = 'none';
-      }
-    });
-
-    const aboutBtn = document.getElementById('aboutBtn');
-    const aboutModal = document.getElementById('aboutModal');
-    const aboutClose = document.getElementById('aboutClose');
-
-    if (aboutBtn && aboutModal && aboutClose) {
-      aboutBtn.addEventListener('click', () => { aboutModal.style.display = 'block'; });
-      aboutClose.addEventListener('click', () => { aboutModal.style.display = 'none'; });
-      window.addEventListener('click', e => { if (e.target === aboutModal) aboutModal.style.display = 'none'; });
-    }
-
-    document.getElementById('logoutBtn')?.addEventListener('click', () => {
-      localStorage.removeItem('userId');
-      window.location.href = 'index.html';
-    });
-
-    fetchUserData();
-    setInterval(fetchUserData, 5000);
-  </script>
+  <script src="user-dashboard.js"></script>
 </body>
 </html>
