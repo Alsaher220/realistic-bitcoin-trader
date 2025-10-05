@@ -122,10 +122,14 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
-// ------------------- VERIFY ADMIN -------------------
+// ------------------- VERIFY ADMIN (FIXED) -------------------
 function verifyAdmin(req, res, next) {
   const userId = req.headers['x-user-id'];
-  if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+  
+  // Check if userId is missing, null, undefined, or the string "null"
+  if (!userId || userId === 'null' || userId === 'undefined') {
+    return res.status(401).json({ success: false, message: 'Unauthorized: No valid user ID' });
+  }
 
   pool.query('SELECT role FROM users WHERE id=$1', [userId])
     .then(result => {
