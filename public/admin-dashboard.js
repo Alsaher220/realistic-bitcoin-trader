@@ -17,16 +17,12 @@ const nftAlert = document.getElementById('nftAlert');
 const adminId = localStorage.getItem('userId');
 const adminRole = localStorage.getItem('role');
 
-// Redirect if not admin - FIXED to handle string "null"
 if (!adminId || adminId === 'null' || adminId === 'undefined' || !adminRole || adminRole !== 'admin') {
   alert('Access denied! Admin login required.');
-  localStorage.clear(); // Clear bad data
+  localStorage.clear();
   window.location.href = 'admin.html';
 }
 
-// ==========================
-// Show Alert Function
-// ==========================
 function showAlert(element, message, isSuccess = true) {
   if (!element) return;
   element.textContent = message;
@@ -35,9 +31,6 @@ function showAlert(element, message, isSuccess = true) {
   setTimeout(() => { element.style.display = 'none'; }, 3000);
 }
 
-// ==========================
-// Fetch Users
-// ==========================
 async function fetchUsers() {
   try {
     const res = await fetch('/admin/users', { headers: { 'x-user-id': adminId } });
@@ -73,9 +66,6 @@ async function fetchUsers() {
   }
 }
 
-// ==========================
-// Delete User
-// ==========================
 async function deleteUser(userId, username) {
   const confirm = window.confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone and will delete all their data (withdrawals, investments, messages).`);
   if (!confirm) return;
@@ -87,9 +77,8 @@ async function deleteUser(userId, username) {
       body: JSON.stringify({ userId })
     });
     const data = await res.json();
-    showAlert(userAlert, data.message || 'User deleted', data.success);​​​​​​​​​​​​​​​​
-
-if (data.success) {
+    showAlert(userAlert, data.message || 'User deleted', data.success);
+    if (data.success) {
       fetchUsers();
       fetchInvestments();
       fetchWithdrawals();
@@ -101,9 +90,6 @@ if (data.success) {
   }
 }
 
-// ==========================
-// Top Up User
-// ==========================
 async function topUpUser(userId) {
   const cash = prompt("Enter CASH amount to top up:");
   const btc = prompt("Enter BTC amount to top up:");
@@ -135,9 +121,6 @@ async function topUpUser(userId) {
   }
 }
 
-// ==========================
-// Reduce User Balance
-// ==========================
 async function reduceUser(userId) {
   const cash = prompt("Enter CASH amount to reduce:");
   const btc = prompt("Enter BTC amount to reduce:");
@@ -159,9 +142,6 @@ async function reduceUser(userId) {
   }
 }
 
-// ==========================
-// Fetch Withdrawals
-// ==========================
 async function fetchWithdrawals() {
   try {
     const res = await fetch('/admin/withdrawals', { headers: { 'x-user-id': adminId } });
@@ -192,9 +172,6 @@ async function fetchWithdrawals() {
   }
 }
 
-// ==========================
-// Approve Withdrawal
-// ==========================
 async function approveWithdrawal(withdrawalId) {
   try {
     const res = await fetch('/admin/withdrawals/process', {
@@ -211,9 +188,6 @@ async function approveWithdrawal(withdrawalId) {
   }
 }
 
-// ==========================
-// Fetch Investments
-// ==========================
 async function fetchInvestments() {
   try {
     const res = await fetch('/admin/investments', { headers: { 'x-user-id': adminId } });
@@ -243,9 +217,6 @@ async function fetchInvestments() {
   }
 }
 
-// ==========================
-// Fetch Top-Ups
-// ==========================
 async function fetchTopups() {
   try {
     const res = await fetch('/admin/topups', { headers: { 'x-user-id': adminId } });
@@ -274,11 +245,6 @@ async function fetchTopups() {
   }
 }
 
-// ==========================
-// NFT MANAGEMENT FUNCTIONS
-// ==========================
-
-// Fetch all NFTs
 async function fetchNFTs() {
   try {
     const res = await fetch('/admin/nfts', { headers: { 'x-user-id': adminId } });
@@ -299,7 +265,7 @@ async function fetchNFTs() {
           <td>${nft.blockchain || '-'}</td>
           <td>${new Date(nft.created_at).toLocaleDateString()}</td>
           <td>
-            <button onclick="deleteNFT(${nft.id}, '${nft.title}')">Delete</button>
+            <button onclick="deleteNFT(${nft.id}, '${nft.title.replace(/'/g, "\\'")}')">Delete</button>
           </td>
         `;
         nftsTableBody.appendChild(row);
@@ -312,7 +278,6 @@ async function fetchNFTs() {
   }
 }
 
-// Create new NFT
 async function createNFT() {
   const title = prompt("Enter NFT Title:");
   if (!title) return;
@@ -339,7 +304,6 @@ async function createNFT() {
   }
 }
 
-// Delete NFT
 async function deleteNFT(nftId, title) {
   const confirm = window.confirm(`Delete NFT "${title}"? This will also remove it from all users.`);
   if (!confirm) return;
@@ -362,7 +326,6 @@ async function deleteNFT(nftId, title) {
   }
 }
 
-// Manage user NFTs (assign/unassign)
 async function manageUserNFTs(userId, username) {
   const action = prompt(`Manage NFTs for ${username}\nType 'assign' to add NFT or 'remove' to remove NFT:`);
   
@@ -375,7 +338,6 @@ async function manageUserNFTs(userId, username) {
   }
 }
 
-// Assign NFT to user
 async function assignNFTToUser(userId, username) {
   try {
     const res = await fetch('/admin/nfts', { headers: { 'x-user-id': adminId } });
@@ -407,7 +369,6 @@ async function assignNFTToUser(userId, username) {
   }
 }
 
-// Remove NFT from user
 async function removeNFTFromUser(userId, username) {
   try {
     const res = await fetch(`/admin/users/${userId}/nfts`, { headers: { 'x-user-id': adminId } });
@@ -439,7 +400,6 @@ async function removeNFTFromUser(userId, username) {
   }
 }
 
-// Fetch NFT assignments
 async function fetchNFTAssignments() {
   try {
     const res = await fetch('/admin/nfts/assignments', { headers: { 'x-user-id': adminId } });
@@ -469,12 +429,8 @@ async function fetchNFTAssignments() {
   }
 }
 
-// Add Create NFT button handler
 document.getElementById('createNFTBtn')?.addEventListener('click', createNFT);
 
-// ==========================
-// Support Chat (Real-Time)
-// ==========================
 const supportChatWindow = document.getElementById('supportChatWindow');
 const supportMessages = document.getElementById('supportMessages');
 const supportMessageInput = document.getElementById('supportMessageInput');
@@ -485,17 +441,15 @@ let supportPollInterval = null;
 let displayedMessageIds = new Set();
 
 function openSupportChat(userId) {
-  console.log('openSupportChat called with userId:', userId, 'type:', typeof userId);
-  
   if (!userId || userId === 'undefined' || userId === 'null') {
-    alert('Invalid user selected! UserId: ' + userId);
+    alert('Invalid user selected!');
     return;
   }
   
   currentChatUserId = userId;
   
   if (!supportChatWindow) {
-    alert('Chat window element not found! Check your HTML.');
+    alert('Chat window element not found!');
     return;
   }
   
@@ -570,9 +524,6 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
-// ==========================
-// Initial Fetches
-// ==========================
 async function refreshAll() {
   await fetchUsers();
   await fetchWithdrawals();
@@ -584,9 +535,6 @@ async function refreshAll() {
 refreshAll();
 setInterval(refreshAll, 5000);
 
-// ==========================
-// Logout
-// ==========================
 document.getElementById('adminLogout')?.addEventListener('click', () => {
   localStorage.removeItem('userId');
   localStorage.removeItem('role');
