@@ -1,5 +1,5 @@
 // =========================
-// TradeSphere User Dashboard JS with Live Support Chat
+// TradeSphere User Dashboard JS with Live Support Chat + NFT Gallery
 // =========================
 
 const userId = localStorage.getItem('userId');
@@ -16,6 +16,7 @@ const supportMessagesBox = document.getElementById('supportMessages');
 const supportForm = document.getElementById('supportForm');
 const supportMessageInput = document.getElementById('supportMessage');
 const openSupportBtn = document.getElementById('openSupportBtn');
+const nftGallery = document.getElementById('nftGallery');
 
 const START_CASH = 50;
 let supportPollInterval = null;
@@ -54,6 +55,7 @@ async function fetchUserData() {
     renderWithdrawals(data.withdrawals || []);
     renderInvestments(data.investments || []);
     renderSupportMessages(data.supportMessages || []);
+    renderNFTs(data.nfts || []);
   } catch (err) {
     console.error('Error fetching user data:', err);
   }
@@ -98,6 +100,56 @@ function renderInvestments(investments = []) {
       <td>${new Date(inv.created_at || Date.now()).toLocaleString()}</td>
     `;
     investmentsTable.appendChild(row);
+  });
+}
+
+// ==========================
+// Render NFT Gallery
+// ==========================
+function renderNFTs(nfts = []) {
+  if (!nftGallery) return;
+
+  nftGallery.innerHTML = '';
+  
+  if (!nfts.length) {
+    nftGallery.innerHTML = `<p style="text-align:center;color:#666;grid-column:1/-1;">No NFTs in your collection yet.</p>`;
+    return;
+  }
+
+  nfts.forEach(nft => {
+    const nftCard = document.createElement('div');
+    nftCard.className = 'nft-card';
+    nftCard.style.cssText = `
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    `;
+
+    nftCard.innerHTML = `
+      <img src="${nft.image_url}" alt="${nft.title}" style="width:100%;height:200px;object-fit:cover;">
+      <div style="padding:15px;">
+        <h3 style="margin:0 0 8px 0;font-size:18px;color:#333;">${nft.title}</h3>
+        <p style="margin:0 0 8px 0;font-size:14px;color:#666;line-height:1.4;">${nft.description || 'No description available'}</p>
+        ${nft.collection_name ? `<p style="margin:4px 0;font-size:12px;color:#888;"><strong>Collection:</strong> ${nft.collection_name}</p>` : ''}
+        ${nft.blockchain ? `<p style="margin:4px 0;font-size:12px;color:#888;"><strong>Blockchain:</strong> ${nft.blockchain}</p>` : ''}
+        <p style="margin:4px 0;font-size:11px;color:#aaa;">Received: ${new Date(nft.assigned_at).toLocaleDateString()}</p>
+      </div>
+    `;
+
+    nftCard.addEventListener('mouseenter', () => {
+      nftCard.style.transform = 'translateY(-5px)';
+      nftCard.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
+    });
+
+    nftCard.addEventListener('mouseleave', () => {
+      nftCard.style.transform = 'translateY(0)';
+      nftCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+    });
+
+    nftGallery.appendChild(nftCard);
   });
 }
 
@@ -163,7 +215,7 @@ supportForm?.addEventListener('submit', async e => {
   if (!message) return;
 
   try {
-    const res = await fetch('/support/send', {
+    const res = await fetch('/support/message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, message })
@@ -190,9 +242,9 @@ function startSupportPolling() {
   if (supportPollInterval) clearInterval(supportPollInterval);
   supportPollInterval = setInterval(async () => {
     try {
-      const res = await fetch(`/support/messages/${userId}`);
+      const res = await fetch(`/user/${userId}`);
       const data = await res.json();
-      if (data.success) renderSupportMessages(data.messages || []);
+      if (data.success) renderSupportMessages(data.supportMessages || []);
     } catch (err) {
       console.error('Error polling support messages:', err);
     }
