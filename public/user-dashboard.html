@@ -200,7 +200,7 @@
       <div class="btc-ticker-left">
         <div class="btc-icon">₿</div>
         <div class="btc-info">
-          <h3>Bitcoin (BTC/USDT)</h3>
+          <h3>Bitcoin (BTC/USD)</h3>
           <div class="btc-price" id="btcLivePrice">Loading...</div>
           <span class="btc-change" id="btcChange">---%</span>
         </div>
@@ -338,11 +338,11 @@
     const START_CASH = 50;
 
     function fetchBitcoinPrice() {
-      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true')
         .then(res => res.json())
         .then(data => {
-          const price = parseFloat(data.lastPrice);
-          const priceChange = parseFloat(data.priceChangePercent);
+          const price = data.bitcoin.usd;
+          const priceChange = data.bitcoin.usd_24h_change;
           
           document.getElementById('btcLivePrice').textContent = `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           
@@ -358,7 +358,7 @@
     }
 
     fetchBitcoinPrice();
-    setInterval(fetchBitcoinPrice, 10000);
+    setInterval(fetchBitcoinPrice, 30000);
 
     function showAlert(el, msg, isSuccess = true) {
       if (!el) return;
@@ -508,7 +508,7 @@
     document.getElementById('withdrawForm')?.addEventListener('submit', async e => {
       e.preventDefault();
       const amount = parseFloat(document.getElementById('withdrawAmount').value);
-      const wallet = document.getElementById('withdrawWallet').value;
+      const wallet = document.getElementById('withdrawWallet').value);
       try {
         const res = await fetch('/withdraw', {
           method: 'POST',
