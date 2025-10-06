@@ -342,7 +342,7 @@
 
     // Binance WebSocket for Live Bitcoin Price
     function connectBinanceWebSocket() {
-      const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
+      const ws = new WebSocket('wss://stream.binance.com:443/ws/btcusdt@trade');
       
       ws.onopen = () => {
         console.log('Binance WebSocket connected');
