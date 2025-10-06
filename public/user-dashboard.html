@@ -124,6 +124,7 @@
       background-color: #FFC700;
     }
     
+    /* Bitcoin Live Price Ticker */
     .btc-ticker {
       background: linear-gradient(135deg, #1b1b1b 0%, #2c2c2c 100%);
       border: 2px solid #FFD700;
@@ -196,12 +197,13 @@
 
   <div class="container">
     
+    <!-- Bitcoin Live Price Ticker -->
     <div class="btc-ticker">
       <div class="btc-ticker-left">
         <div class="btc-icon">₿</div>
         <div class="btc-info">
           <h3>Bitcoin (BTC/USDT)</h3>
-          <div class="btc-price" id="btcLivePrice">Loading...</div>
+          <div class="btc-price" id="btcLivePrice">$--,---</div>
           <span class="btc-change" id="btcChange">---%</span>
         </div>
       </div>
@@ -336,29 +338,51 @@
     const uploadPictureBtn = document.getElementById('uploadPictureBtn');
 
     const START_CASH = 50;
+    let lastBtcPrice = null;
 
-    function fetchBitcoinPrice() {
-      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')
-        .then(res => res.json())
-        .then(data => {
-          const price = parseFloat(data.lastPrice);
-          const priceChange = parseFloat(data.priceChangePercent);
-          
-          document.getElementById('btcLivePrice').textContent = `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          
-          const changeElement = document.getElementById('btcChange');
-          const changeText = priceChange >= 0 ? `+${priceChange.toFixed(2)}%` : `${priceChange.toFixed(2)}%`;
-          changeElement.textContent = changeText;
-          changeElement.className = `btc-change ${priceChange >= 0 ? 'up' : 'down'}`;
-        })
-        .catch(err => {
-          console.error('Price fetch error:', err);
-          document.getElementById('btcLivePrice').textContent = 'Unavailable';
-        });
+    // Binance WebSocket for Live Bitcoin Price
+    function connectBinanceWebSocket() {
+      const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
+      
+      ws.onopen = () => {
+        console.log('Binance WebSocket connected');
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const price = parseFloat(data.p);
+        updateBitcoinPrice(price);
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        document.getElementById('btcLivePrice').textContent = 'Connection Error';
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket closed. Reconnecting in 5 seconds...');
+        setTimeout(connectBinanceWebSocket, 5000);
+      };
     }
 
-    fetchBitcoinPrice();
-    setInterval(fetchBitcoinPrice, 10000);
+    function updateBitcoinPrice(price) {
+      const priceElement = document.getElementById('btcLivePrice');
+      const changeElement = document.getElementById('btcChange');
+      
+      priceElement.textContent = `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      
+      if (lastBtcPrice !== null) {
+        const change = ((price - lastBtcPrice) / lastBtcPrice) * 100;
+        const changeText = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
+        changeElement.textContent = changeText;
+        changeElement.className = `btc-change ${change >= 0 ? 'up' : 'down'}`;
+      }
+      
+      lastBtcPrice = price;
+    }
+
+    // Start WebSocket connection
+    connectBinanceWebSocket();
 
     function showAlert(el, msg, isSuccess = true) {
       if (!el) return;
