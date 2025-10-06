@@ -1,9 +1,4 @@
 // server.js
-I understand the issues. Let me send you the complete working files - each in a single code block you can copy with one click.
-
-## **FILE 1: server.js** (Copy everything below)
-
-```javascript
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -445,6 +440,3 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(port, () => console.log(`Server running on port ${port}`));
-```
-
-Will continue with admin-dashboard.js in the next message due to length…​​​​​​​​​​​​​​​​
